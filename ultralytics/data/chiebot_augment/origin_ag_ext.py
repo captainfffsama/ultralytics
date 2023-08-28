@@ -3,25 +3,28 @@
 @Author: captainfffsama
 @Date: 2023-08-17 13:56:28
 @LastEditors: captainfffsama tuanzhangsama@outlook.com
-@LastEditTime: 2023-08-18 12:41:04
+@LastEditTime: 2023-08-28 13:35:02
 @FilePath: /ultralytics/ultralytics/data/chiebot_augment/origin_ag_ext.py
 @Description:
 '''
 import numpy as np
-from typing import Tuple,Optional
+from typing import Tuple, Optional
 from functools import wraps
 
 
 def skip_class_support(cls):
     """transform support skip some class now
+        add skip_class_idx args to agument class init function
+        skip_class_idx is a tuple,contains the class idx which need skip
     """
-    original_init=cls.__init__
-    @wraps(original_init)
-    def __init__(self,*args,skip_class_idx:Optional[Tuple[int]]=tuple(),**kwargs):
-        self.skip_class=skip_class_idx
-        original_init(self,*args,**kwargs)
+    original_init = cls.__init__
 
-    cls.__init__=__init__
+    @wraps(original_init)
+    def __init__(self, *args, skip_class_idx: Optional[Tuple[int]] = tuple(), **kwargs):
+        self.skip_class = skip_class_idx
+        original_init(self, *args, **kwargs)
+
+    cls.__init__ = __init__
 
     original_call = cls.__call__
 
@@ -43,7 +46,7 @@ def skip_class_support(cls):
         if skip_idx.any():
             return data
         else:
-            return original_call(self,data)
+            return original_call(self, data)
 
     cls.__call__ = __call__
     return cls

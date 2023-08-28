@@ -75,6 +75,7 @@ class BaseTrainer:
 
     def __init__(self, cfg=DEFAULT_CFG, overrides=None, _callbacks=None):
         """
+        这里外层在初始化的时候cfg压根没有传
         Initializes the BaseTrainer class.
 
         Args:

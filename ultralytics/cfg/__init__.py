@@ -108,7 +108,6 @@ def get_cfg(cfg: Union[str, Path, Dict, SimpleNamespace] = DEFAULT_CFG_DICT, ove
         (SimpleNamespace): Training arguments namespace.
     """
     cfg = cfg2dict(cfg)
-
     # Merge overrides
     if overrides:
         overrides = cfg2dict(overrides)

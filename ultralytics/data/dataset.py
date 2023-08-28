@@ -134,6 +134,7 @@ class YOLODataset(BaseDataset):
 
     def build_transforms(self, hyp=None):
         """Builds and appends transforms to the list."""
+        # TODO: more ag support!
         if self.augment:
             hyp.mosaic = hyp.mosaic if self.augment and not self.rect else 0.0
             hyp.mixup = hyp.mixup if self.augment and not self.rect else 0.0
@@ -167,7 +168,6 @@ class YOLODataset(BaseDataset):
         bbox_format = label.pop('bbox_format')
         normalized = label.pop('normalized')
         label['instances'] = Instances(bboxes, segments, keypoints, bbox_format=bbox_format, normalized=normalized)
-        breakpoint()
         return label
 
     @staticmethod

@@ -114,3 +114,11 @@ cfg:  # (str, optional) for overriding defaults.yaml
 
 # Tracker settings ------------------------------------------------------------------------------------------------------
 tracker: botsort.yaml  # (str) tracker type, choices=[botsort.yaml, bytetrack.yaml]
+
+# chiebot settings --------------------------------------------------------------------------------
+# ag:
+#   a1:
+#     a11: 1111
+#     a12: [1,2,3]
+#   a2: 1
+#   a3: 2
