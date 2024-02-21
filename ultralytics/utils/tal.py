@@ -166,7 +166,7 @@ class TaskAlignedAssigner(nn.Module):
         norm_align_metric=(align_metric * pos_overlaps / (pos_align_metrics + self.eps)).permute(0,2,1)
         tg_idx=gt_labels.expand(-1,-1,norm_align_metric.shape[1]).permute(0,2,1).long()
         target_scores=target_scores.type_as(norm_align_metric)
-        target_scores.scatter_(2,tg_idx,norm_align_metric)
+        target_scores.scatter_(2,tg_idx,norm_align_metric,reduce='multiply')
 
 
 
