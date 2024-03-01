@@ -14,7 +14,7 @@ from ultralytics.nn.modules import (AIFI, C1, C2, C3, C3TR, SPP, SPPF, Bottlenec
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
 from ultralytics.utils.loss import v8ClassificationLoss, v8DetectionLoss, v8PoseLoss, v8SegmentationLoss
-from ultralytics.utils.plotting import feature_visualization
+from ultralytics.utils.plotting import feature_visualization,feature_pca_v,detect_vis
 from ultralytics.utils.torch_utils import (fuse_conv_and_bn, fuse_deconv_and_bn, initialize_weights, intersect_dicts,
                                            make_divisible, model_info, scale_img, time_sync)
 
@@ -58,9 +58,9 @@ class BaseModel(nn.Module):
             return self._predict_augment(x)
         return self._predict_once(x, profile, visualize)
 
-    def _predict_once(self, x, profile=False, visualize=False):
+    def _predict_once(self, x:torch.Tensor, profile=False, visualize=False):
         """
-        Perform a forward pass through the network.
+        Perform a forward pass through the netwo'visualize',rk.
 
         Args:
             x (torch.Tensor): The input tensor to the model.
@@ -71,6 +71,7 @@ class BaseModel(nn.Module):
             (torch.Tensor): The last output of the model.
         """
         y, dt = [], []  # outputs
+        img=x.detach().cpu()
         for m in self.model:
             if m.f != -1:  # if not from previous layer
                 x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
@@ -79,7 +80,14 @@ class BaseModel(nn.Module):
             x = m(x)  # run
             y.append(x if m.i in self.save else None)  # save output
             if visualize:
-                feature_visualization(x, m.type, m.i, save_dir=visualize)
+                if "chiebot" == visualize.parts[-2]:
+                    if m.i in (15,18,21) and m.type.split('.')[-1] == "C2f":
+                        feature_pca_v(img,x,f"stage{m.i}_{m.type.split('.')[-1]}",save_dir=visualize)
+                    if m.type.split('.')[-1] =="Detect":
+                        detect_vis(img,x,f"stage{m.i}_{m.type.split('.')[-1]}",m.reg_max,save_dir=visualize)
+                        pass
+                else:
+                    feature_visualization(x, m.type, m.i, save_dir=visualize)
         return x
 
     def _predict_augment(self, x):
@@ -232,6 +240,7 @@ class DetectionModel(BaseModel):
         self.model, self.save = parse_model(deepcopy(self.yaml), ch=ch, verbose=verbose)  # model, savelist
         self.names = {i: f'{i}' for i in range(self.yaml['nc'])}  # default names dict
         self.inplace = self.yaml.get('inplace', True)
+        print("run")
 
         # Build strides
         m = self.model[-1]  # Detect()

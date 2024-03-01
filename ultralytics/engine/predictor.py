@@ -44,6 +44,8 @@ from ultralytics.utils.checks import check_imgsz, check_imshow
 from ultralytics.utils.files import increment_path
 from ultralytics.utils.torch_utils import select_device, smart_inference_mode
 
+# DEBUG:
+# import ultralytics.debug_tools as D
 STREAM_WARNING = """
 WARNING ⚠️ inference results will accumulate in RAM unless `stream=True` is passed, causing potential out-of-memory
 errors for large sources or long-running streams and videos. See https://docs.ultralytics.com/modes/predict/ for help.
@@ -132,7 +134,9 @@ class BasePredictor:
 
     def inference(self, im, *args, **kwargs):
         """Runs inference on a given image using the specified model and arguments."""
-        visualize = increment_path(self.save_dir / Path(self.batch[0][0]).stem,
+        if self.args.visualize == "chiebot":
+            save_dir=self.save_dir/"chiebot"/Path(self.batch[0][0]).stem
+        visualize = increment_path(save_dir,
                                    mkdir=True) if self.args.visualize and (not self.source_type.tensor) else False
         return self.model(im, augment=self.args.augment, visualize=visualize)
 
@@ -261,7 +265,6 @@ class BasePredictor:
                 # Inference
                 with profilers[1]:
                     preds = self.inference(im, *args, **kwargs)
-
                 # Postprocess
                 with profilers[2]:
                     self.results = self.postprocess(preds, im, im0s)

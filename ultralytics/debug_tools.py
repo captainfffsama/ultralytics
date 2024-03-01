@@ -4,7 +4,7 @@
 @Date: 2022年 10月 27日 星期二 10:32:12 CST
 @Description: 张量调试自用
 """
-from typing import Optional, Union, Dict, List, TypeVar
+from typing import Optional, Union, Dict, List, TypeVar, Tuple
 import math
 from copy import deepcopy
 import logging
@@ -278,28 +278,32 @@ def show_bbox_scores(bbox_scores: torch.Tensor, size=640):
     show_img([p1, p2, p3])
 
 
-def show_flatten_tensor(t: torch.Tensor, flatten_dim: int, stage_num=3, size=640):
-    if len(t.shape)>4:
+def show_flatten_tensor(
+    t: torch.Tensor,
+    flatten_dim: int,
+    stage_num: int = 3,
+    size: Union[int, Tuple[int, int]] = 640,
+):
+    if len(t.shape) > 4:
         return
-    s = [0] * stage_num
+    if isinstance(size, int):
+        size = (size, size)
+    s = [[0, 0]] * stage_num
     for i in range(stage_num):
-        s[i] = size // (8 * (2**i))
+        s[i] = [size[0] // (8 * (2**i)), size[1] // (8 * (2**i))]
 
-    dim_order=list(range(len(t.shape)))
+    dim_order = list(range(len(t.shape)))
     dim_order.pop(flatten_dim)
     dim_order.append(flatten_dim)
 
-    dim_num=list(t.shape)
+    dim_num = list(t.shape)
     dim_num.pop(flatten_dim)
 
-    split_args=[i*i for i in s]
-    if flatten_dim!=len(t.shape)-1:
-        tt=t.permute(dim_order)
+    split_args = [i * j for i,j in s]
+    if flatten_dim != len(t.shape) - 1:
+        tt = t.permute(dim_order)
     else:
-        tt=t
-    r=tt.split(split_args,dim=-1)
-    r=[m.view(*(dim_num+[st,st])) for m,st in zip(r,s)]
+        tt = t
+    r = tt.split(split_args, dim=-1)
+    r = [m.view(*(dim_num + st)) for m, st in zip(r, s)]
     show_img(r)
-
-
-
