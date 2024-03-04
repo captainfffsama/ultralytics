@@ -967,7 +967,7 @@ def detect_vis(
             ax[i].axis("off")
 
         LOGGER.info(f"Saving {file}")
-        plt.savefig(file, dpi=300, bbox_inches="tight")
+        plt.savefig(file, dpi=700, bbox_inches="tight")
         plt.close()
 
 
@@ -985,7 +985,7 @@ def detect_vis(
             ax[i].axis("off")
 
         LOGGER.info(f"Saving {file}")
-        plt.savefig(file, dpi=300, bbox_inches="tight")
+        plt.savefig(file, dpi=700, bbox_inches="tight")
         plt.close()
 
 
@@ -1025,13 +1025,18 @@ def _split_channel2grid(
     return data, (nrow, ncol)
 
 
-def _synthe_vis_img(data: torch.Tensor, background: torch.Tensor):
+def _synthe_vis_img(data: torch.Tensor, background: torch.Tensor,resize=True):
     """_summary_
 
     Args:
         data (torch.Tensor): B,C,H,W float
         background (torch.Tensor): B,3,H,W float
     """
+    if resize:
+        final_size=(background.shape[-2]//4,background.shape[-1]//4)
+        data= F.interpolate(
+            data.detach(),final_size)
+
     background = F.interpolate(
         background, data.shape[-2:], mode="bilinear", align_corners=False
     )
