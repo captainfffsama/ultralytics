@@ -1001,7 +1001,7 @@ def normalize_tensor(data: Union[torch.Tensor, np.ndarray]):
 
 def _split_channel2grid(
     data: torch.Tensor, chw_start_dim: int = 0
-) -> tuple[torch.Tensor, tuple[int, int]]:
+) -> Tuple[torch.Tensor, Tuple[int, int]]:
     """data should be 3D tensor and CHW"""
     if len(data.shape) < 3:
         raise ValueError("data shoule be 3D 4D 5D tensor,last dim order is CHW")
