@@ -134,6 +134,7 @@ class BasePredictor:
 
     def inference(self, im, *args, **kwargs):
         """Runs inference on a given image using the specified model and arguments."""
+        save_dir=self.save_dir/Path(self.batch[0][0]).stem
         if self.args.visualize == "chiebot":
             save_dir=self.save_dir/"chiebot"/Path(self.batch[0][0]).stem
         visualize = increment_path(save_dir,
