@@ -141,32 +141,32 @@ class TaskAlignedAssigner(nn.Module):
         # )
         # NOTE: target_scores not one hot now
         target_labels, target_bboxes, target_scores = self.assigned_target(
-            gt_labels, gt_bboxes, target_gt_idx, fg_mask,mask_pos
+            gt_labels, gt_bboxes, target_gt_idx, fg_mask,o_mask_pos
         )
 
         # Normalize
         align_metric *= mask_pos
         pos_align_metrics = align_metric.amax(dim=-1, keepdim=True)  # b, max_num_obj
-        # pos_overlaps = (overlaps * mask_pos).amax(
-        #     dim=-1, keepdim=True
-        # )  # b, max_num_obj
-        # norm_align_metric = (
-        #     (align_metric * pos_overlaps / (pos_align_metrics + self.eps))
-        #     .amax(-2)
-        #     .unsqueeze(-1)
-        # )
-
-        # target_scores (Tensor): shape(bs, num_total_anchors, num_classes)
-        # target_scores = target_scores * norm_align_metric
-
-        # NOTE: if use assigned_target, use this line
-        pos_overlaps = (overlaps * o_mask_pos).amax(
+        pos_overlaps = (overlaps * mask_pos).amax(
             dim=-1, keepdim=True
         )  # b, max_num_obj
-        norm_align_metric=(align_metric * pos_overlaps / (pos_align_metrics + self.eps)).permute(0,2,1)
-        tg_idx=gt_labels.expand(-1,-1,norm_align_metric.shape[1]).permute(0,2,1).long()
-        target_scores=target_scores.type_as(norm_align_metric)
-        target_scores.scatter_(2,tg_idx,norm_align_metric,reduce='multiply')
+        norm_align_metric = (
+            (align_metric * pos_overlaps / (pos_align_metrics + self.eps))
+            .amax(-2)
+            .unsqueeze(-1)
+        )
+
+        # target_scores (Tensor): shape(bs, num_total_anchors, num_classes)
+        target_scores = target_scores * norm_align_metric
+
+        # NOTE: if use assigned_target, use this line
+        # pos_overlaps = (overlaps * o_mask_pos).amax(
+        #     dim=-1, keepdim=True
+        # )  # b, max_num_obj
+        # norm_align_metric=(align_metric * pos_overlaps / (pos_align_metrics + self.eps)).permute(0,2,1)
+        # tg_idx=gt_labels.expand(-1,-1,norm_align_metric.shape[1]).permute(0,2,1).long()
+        # target_scores=target_scores.type_as(norm_align_metric)
+        # target_scores.scatter_(2,tg_idx,norm_align_metric,reduce='multiply')
 
 
 
@@ -227,20 +227,25 @@ class TaskAlignedAssigner(nn.Module):
 
         # 10x faster than F.one_hot()
         target_scores = torch.zeros(
-            (target_labels.shape[0], target_labels.shape[1], self.num_classes),
+            (target_labels.shape[0], target_labels.shape[1], self.num_classes+1),
             dtype=torch.int64,
             device=target_labels.device,
         )  # (b, h*w, 80)
-        scatter_idx = (gt_labels.long() * mask_pos.long()).permute(
+        scatter_idx = ((gt_labels+1).long() * mask_pos.long()).permute(
             0, 2, 1
         ) # (b, h*w,max_num_obj)
 
         target_scores.scatter_(2, scatter_idx, 1)
+        target_scores=target_scores[:,:,1:]
 
         fg_scores_mask = fg_mask[:, :, None].repeat(
             1, 1, self.num_classes
         )  # (b, h*w, 80)
         target_scores = torch.where(fg_scores_mask > 0, target_scores, 0)
+        ## DEBUG: debug使用
+        # r0=D.show_flatten_tensor(mask_pos,2,show=False)
+        # r1=D.show_flatten_tensor(fg_mask,1,show=False)
+        # r2=D.show_flatten_tensor(target_scores,1,show=False)
 
         return target_labels, target_bboxes, target_scores
 

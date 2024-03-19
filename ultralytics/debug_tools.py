@@ -283,6 +283,7 @@ def show_flatten_tensor(
     flatten_dim: int,
     stage_num: int = 3,
     size: Union[int, Tuple[int, int]] = 640,
+    show=True
 ):
     if len(t.shape) > 4:
         return
@@ -306,4 +307,6 @@ def show_flatten_tensor(
         tt = t
     r = tt.split(split_args, dim=-1)
     r = [m.view(*(dim_num + st)) for m, st in zip(r, s)]
-    show_img(r)
+    if show:
+        show_img(r)
+    return r
