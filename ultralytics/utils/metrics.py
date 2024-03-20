@@ -10,6 +10,7 @@ import numpy as np
 import torch
 
 from ultralytics.utils import LOGGER, SimpleClass, TryExcept, plt_settings
+from ultralytics.utils.plotting import create_markdown_table
 
 OKS_SIGMA = np.array([.26, .25, .25, .35, .35, .79, .79, .72, .72, .62, .62, 1.07, 1.07, .87, .87, .89, .89]) / 10.0
 
@@ -932,6 +933,21 @@ class DetMetrics(SimpleClass):
     def curves_results(self):
         """Returns dictionary of computed performance metrics and statistics."""
         return self.box.curves_results
+
+    @property
+    def result_table_str(self) -> str:
+        """Returns a string representation of the result table."""
+        data=[["Class","P","R","mAP50","mAP50-95"],]
+        if 0==len(self.box.ap_class_index):
+            for k,v in self.names.items():
+                data.append([v,0,0,0,0])
+        else:
+            for i,c in enumerate(self.box.ap_class_index):
+                data.append([self.names[c],self.box.p[i],self.box.r[i],self.box.ap50[i],self.box.ap[i]])
+        data.append(["**mean**",self.box.mp,self.box.mr,self.box.map50,self.box.map])
+        return create_markdown_table(data)
+
+
 
 
 class SegmentMetrics(SimpleClass):

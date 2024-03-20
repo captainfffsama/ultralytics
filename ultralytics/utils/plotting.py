@@ -24,6 +24,49 @@ import ultralytics.debug_tools as D
 from .checks import check_font, check_version, is_ascii
 from .files import increment_path
 
+def create_markdown_table(data:List[List[str]]) ->str:
+    """_summary_
+
+    Args:
+        data (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    Example:
+        data = [
+            ["Name", "Age", "Occupation"],
+            ["Alice", 30, "Engineer"],
+            ["Bob", 25, "Data Scientist"],
+            ["Charlie", 35, "Product Manager"]
+        ]
+        print(create_markdown_table(data))
+
+        >>> | 1 | 2 | 3 |
+        >>> |---|---|---|
+        >>> | Name | Age | Occupation |
+        >>> | Alice | 30 | Engineer |
+        >>> | Bob | 25 | Data Scientist |
+        >>> | Charlie | 35 | Product Manager |
+
+    """
+    # 确保所有行的元素数量相同
+    max_cols = max(len(row) for row in data)
+    for row in data:
+        while len(row) < max_cols:
+            row.append(None)
+
+    table = []
+    # 创建表格内容部分
+    for i,row in enumerate(data):
+        table.append("|")
+        for item in row:
+            table[-1] += f" {item} |"
+        table[-1] += "\n"
+        if 0==i:
+            # 添加分隔线
+            table.append("|" + "---|" * max_cols + "\n")
+
+    return "".join(table)
 
 class Colors:
     """

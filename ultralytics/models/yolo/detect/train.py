@@ -11,6 +11,7 @@ from ultralytics.nn.tasks import DetectionModel
 from ultralytics.utils import LOGGER, RANK
 from ultralytics.utils.plotting import plot_images, plot_labels, plot_results
 from ultralytics.utils.torch_utils import de_parallel, torch_distributed_zero_first
+import ultralytics.utils.callbacks.tensorboard  as ultb
 
 
 class DetectionTrainer(BaseTrainer):
@@ -76,7 +77,9 @@ class DetectionTrainer(BaseTrainer):
     def get_validator(self):
         """Returns a DetectionValidator for YOLO model validation."""
         self.loss_names = 'box_loss', 'cls_loss', 'dfl_loss'
-        return yolo.detect.DetectionValidator(self.test_loader, save_dir=self.save_dir, args=copy(self.args))
+        validator=yolo.detect.DetectionValidator(self.test_loader, save_dir=self.save_dir,args=copy(self.args))
+        validator.add_callback("on_val_end", ultb.on_val_end)
+        return validator
 
     def label_loss_items(self, loss_items=None, prefix='train'):
         """
