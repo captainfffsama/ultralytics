@@ -4,18 +4,63 @@
 import math
 import warnings
 from pathlib import Path
+from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
 from ultralytics.utils import LOGGER, SimpleClass, TryExcept, plt_settings
-from ultralytics.utils.plotting import create_markdown_table
 
 OKS_SIGMA = (
     np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89])
     / 10.0
 )
+
+def create_markdown_table(data:List[List[str]],significant_digits:int=5) ->str:
+    """_summary_
+
+    Args:
+        data (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    Example:
+        data = [
+            ["Name", "Age", "Occupation"],
+            ["Alice", 30, "Engineer"],
+            ["Bob", 25, "Data Scientist"],
+            ["Charlie", 35, "Product Manager"]
+        ]
+        print(create_markdown_table(data))
+
+        >>> |---|---|---|
+        >>> | Name | Age | Occupation |
+        >>> | Alice | 30 | Engineer |
+        >>> | Bob | 25 | Data Scientist |
+        >>> | Charlie | 35 | Product Manager |
+
+    """
+    # 确保所有行的元素数量相同
+    max_cols = max(len(row) for row in data)
+    for row in data:
+        while len(row) < max_cols:
+            row.append(None)
+
+    table = []
+    # 创建表格内容部分
+    for i,row in enumerate(data):
+        table.append("|")
+        for item in row:
+            if isinstance(item, float):
+                item=f"{item:.{significant_digits}f}"
+            table[-1] += f" {item} |"
+        table[-1] += "\n"
+        if 0==i:
+            # 添加分隔线
+            table.append("|" + "---|" * max_cols + "\n")
+
+    return "".join(table)
 
 
 def bbox_ioa(box1, box2, iou=False, eps=1e-7):
@@ -391,7 +436,11 @@ class ConfusionMatrix:
             if n and sum(j) == 1:
                 self.matrix[detection_classes[m1[j]], gc] += 1  # correct
             else:
-                self.matrix[self.nc, gc] += 1  # true background
+                try:
+                    self.matrix[self.nc, gc] += 1  # true background
+                except:
+                    print(self.nc)
+                    # breakpoint()
 
         if n:
             for i, dc in enumerate(detection_classes):

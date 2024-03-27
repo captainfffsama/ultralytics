@@ -104,6 +104,7 @@ class TaskAlignedAssigner(nn.Module):
         target_scores = target_scores * norm_align_metric
 
         # NOTE: if use assigned_target, use this line
+        # soft score will get a bad result
         # pos_overlaps = (overlaps * o_mask_pos).amax(
         #     dim=-1, keepdim=True
         # )  # b, max_num_obj
@@ -180,7 +181,8 @@ class TaskAlignedAssigner(nn.Module):
         ) # (b, h*w,max_num_obj)
 
         target_scores.scatter_(2, scatter_idx, 1)
-        target_scores=target_scores[:,:,1:]
+        _,target_scores=torch.split(target_scores,[1,self.num_classes],dim=2)
+        # target_scores=target_scores[:,:,1:]
 
         fg_scores_mask = fg_mask[:, :, None].repeat(
             1, 1, self.num_classes
