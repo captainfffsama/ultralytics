@@ -1,6 +1,6 @@
 ---
 comments: true
-description: 'Learn how to use Ultralytics YOLO through Command Line: train models, run predictions and exports models to different formats easily using terminal commands.'
+description: Learn how to use Ultralytics YOLO through Command Line, train models, run predictions and exports models to different formats easily using terminal commands.
 keywords: Ultralytics, YOLO, CLI, train, validation, prediction, command line interface, YOLO CLI, YOLO terminal, model training, prediction, exporting
 ---
 
@@ -10,16 +10,16 @@ The YOLO command line interface (CLI) allows for simple single-line commands wit
 
 <p align="center">
   <br>
-  <iframe width="720" height="405" src="https://www.youtube.com/embed/GsXGnb-A4Kc"
+  <iframe loading="lazy" width="720" height="405" src="https://www.youtube.com/embed/GsXGnb-A4Kc?start=19"
     title="YouTube video player" frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
     allowfullscreen>
   </iframe>
   <br>
-  <strong>Watch:</strong> Mastering Ultralytics YOLOv8: CLI & Python Usage and Live Inference
+  <strong>Watch:</strong> Mastering Ultralytics YOLOv8: CLI
 </p>
 
-!!! example
+!!! Example
 
     === "Syntax"
 
@@ -80,7 +80,7 @@ Where:
 - `ARGS` (optional) are any number of custom `arg=value` pairs like `imgsz=320` that override defaults. For a full list of available `ARGS` see the [Configuration](cfg.md) page and `defaults.yaml`
   GitHub [source](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/default.yaml).
 
-!!! warning "Warning"
+!!! Warning "Warning"
 
     Arguments must be passed as `arg=val` pairs, split by an equals `=` sign and delimited by spaces ` ` between pairs. Do not use `--` argument prefixes or commas `,` between arguments.
 
@@ -92,7 +92,7 @@ Where:
 
 Train YOLOv8n on the COCO128 dataset for 100 epochs at image size 640. For a full list of available arguments see the [Configuration](cfg.md) page.
 
-!!! example "Example"
+!!! Example "Example"
 
     === "Train"
 
@@ -112,7 +112,7 @@ Train YOLOv8n on the COCO128 dataset for 100 epochs at image size 640. For a ful
 
 Validate trained YOLOv8n model accuracy on the COCO128 dataset. No argument need to passed as the `model` retains it's training `data` and arguments as model attributes.
 
-!!! example "Example"
+!!! Example "Example"
 
     === "Official"
 
@@ -132,7 +132,7 @@ Validate trained YOLOv8n model accuracy on the COCO128 dataset. No argument need
 
 Use a trained YOLOv8n model to run predictions on images.
 
-!!! example "Example"
+!!! Example "Example"
 
     === "Official"
 
@@ -152,7 +152,7 @@ Use a trained YOLOv8n model to run predictions on images.
 
 Export a YOLOv8n model to a different format like ONNX, CoreML, etc.
 
-!!! example "Example"
+!!! Example "Example"
 
     === "Official"
 
@@ -175,36 +175,39 @@ Available YOLOv8 export formats are in the table below. You can export to any fo
 | [PyTorch](https://pytorch.org/)                                    | -                 | `yolov8n.pt`              | ✅        | -                                                   |
 | [TorchScript](https://pytorch.org/docs/stable/jit.html)            | `torchscript`     | `yolov8n.torchscript`     | ✅        | `imgsz`, `optimize`                                 |
 | [ONNX](https://onnx.ai/)                                           | `onnx`            | `yolov8n.onnx`            | ✅        | `imgsz`, `half`, `dynamic`, `simplify`, `opset`     |
-| [OpenVINO](https://docs.openvino.ai/latest/index.html)             | `openvino`        | `yolov8n_openvino_model/` | ✅        | `imgsz`, `half`, `int8`                             |
+| [OpenVINO](../integrations/openvino.md)                            | `openvino`        | `yolov8n_openvino_model/` | ✅        | `imgsz`, `half`, `int8`                             |
 | [TensorRT](https://developer.nvidia.com/tensorrt)                  | `engine`          | `yolov8n.engine`          | ✅        | `imgsz`, `half`, `dynamic`, `simplify`, `workspace` |
 | [CoreML](https://github.com/apple/coremltools)                     | `coreml`          | `yolov8n.mlpackage`       | ✅        | `imgsz`, `half`, `int8`, `nms`                      |
 | [TF SavedModel](https://www.tensorflow.org/guide/saved_model)      | `saved_model`     | `yolov8n_saved_model/`    | ✅        | `imgsz`, `keras`, `int8`                            |
 | [TF GraphDef](https://www.tensorflow.org/api_docs/python/tf/Graph) | `pb`              | `yolov8n.pb`              | ❌        | `imgsz`                                             |
 | [TF Lite](https://www.tensorflow.org/lite)                         | `tflite`          | `yolov8n.tflite`          | ✅        | `imgsz`, `half`, `int8`                             |
 | [TF Edge TPU](https://coral.ai/docs/edgetpu/models-intro/)         | `edgetpu`         | `yolov8n_edgetpu.tflite`  | ✅        | `imgsz`                                             |
-| [TF.js](https://www.tensorflow.org/js)                             | `tfjs`            | `yolov8n_web_model/`      | ✅        | `imgsz`                                             |
+| [TF.js](https://www.tensorflow.org/js)                             | `tfjs`            | `yolov8n_web_model/`      | ✅        | `imgsz`, `half`, `int8`                             |
 | [PaddlePaddle](https://github.com/PaddlePaddle)                    | `paddle`          | `yolov8n_paddle_model/`   | ✅        | `imgsz`                                             |
-| [ncnn](https://github.com/Tencent/ncnn)                            | `ncnn`            | `yolov8n_ncnn_model/`     | ✅        | `imgsz`, `half`                                     |
+| [NCNN](https://github.com/Tencent/ncnn)                            | `ncnn`            | `yolov8n_ncnn_model/`     | ✅        | `imgsz`, `half`                                     |
 
 ## Overriding default arguments
 
 Default arguments can be overridden by simply passing them as arguments in the CLI in `arg=value` pairs.
 
-!!! tip ""
+!!! Tip ""
 
     === "Train"
+
         Train a detection model for `10 epochs` with `learning_rate` of `0.01`
         ```bash
         yolo detect train data=coco128.yaml model=yolov8n.pt epochs=10 lr0=0.01
         ```
 
     === "Predict"
+
         Predict a YouTube video using a pretrained segmentation model at image size 320:
         ```bash
         yolo segment predict model=yolov8n-seg.pt source='https://youtu.be/LNwODJXcvt4' imgsz=320
         ```
 
     === "Val"
+
         Validate a pretrained detection model at batch-size 1 and image size 640:
         ```bash
         yolo detect val model=yolov8n.pt data=coco128.yaml batch=1 imgsz=640
@@ -218,9 +221,10 @@ To do this first create a copy of `default.yaml` in your current working dir wit
 
 This will create `default_copy.yaml`, which you can then pass as `cfg=default_copy.yaml` along with any additional args, like `imgsz=320` in this example:
 
-!!! example ""
+!!! Example
 
     === "CLI"
+
         ```bash
         yolo copy-cfg
         yolo cfg=default_copy.yaml imgsz=320

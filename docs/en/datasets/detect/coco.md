@@ -8,6 +8,17 @@ keywords: Ultralytics, COCO dataset, object detection, YOLO, YOLO model training
 
 The [COCO](https://cocodataset.org/#home) (Common Objects in Context) dataset is a large-scale object detection, segmentation, and captioning dataset. It is designed to encourage research on a wide variety of object categories and is commonly used for benchmarking computer vision models. It is an essential dataset for researchers and developers working on object detection, segmentation, and pose estimation tasks.
 
+<p align="center">
+  <br>
+  <iframe loading="lazy" width="720" height="405" src="https://www.youtube.com/embed/uDrn9QZJ2lk"
+    title="YouTube video player" frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen>
+  </iframe>
+  <br>
+  <strong>Watch:</strong> Ultralytics COCO Dataset Overview
+</p>
+
 ## Key Features
 
 - COCO contains 330K images, with 200K images having annotations for object detection, segmentation, and captioning tasks.
@@ -31,7 +42,7 @@ The COCO dataset is widely used for training and evaluating deep learning models
 
 A YAML (Yet Another Markup Language) file is used to define the dataset configuration. It contains information about the dataset's paths, classes, and other relevant information. In the case of the COCO dataset, the `coco.yaml` file is maintained at [https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco.yaml](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco.yaml).
 
-!!! example "ultralytics/cfg/datasets/coco.yaml"
+!!! Example "ultralytics/cfg/datasets/coco.yaml"
 
     ```yaml
     --8<-- "ultralytics/cfg/datasets/coco.yaml"
@@ -41,7 +52,7 @@ A YAML (Yet Another Markup Language) file is used to define the dataset configur
 
 To train a YOLOv8n model on the COCO dataset for 100 epochs with an image size of 640, you can use the following code snippets. For a comprehensive list of available arguments, refer to the model [Training](../../modes/train.md) page.
 
-!!! example "Train Example"
+!!! Example "Train Example"
 
     === "Python"
 
@@ -76,7 +87,7 @@ The example showcases the variety and complexity of the images in the COCO datas
 
 If you use the COCO dataset in your research or development work, please cite the following paper:
 
-!!! note ""
+!!! Quote ""
 
     === "BibTeX"
 

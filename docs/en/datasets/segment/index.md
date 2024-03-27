@@ -33,7 +33,7 @@ Here is an example of the YOLO dataset format for a single image with two object
 1 0.504 0.000 0.501 0.004 0.498 0.004 0.493 0.010 0.492 0.0104
 ```
 
-!!! tip "Tip"
+!!! Tip "Tip"
 
       - The length of each row does **not** have to be equal.
       - Each segmentation label must have a **minimum of 3 xy points**: `<class-index> <x1> <y1> <x2> <y2> <x3> <y3>`
@@ -54,7 +54,7 @@ names:
   0: person
   1: bicycle
   2: car
-  ...
+  # ...
   77: teddy bear
   78: hair drier
   79: toothbrush
@@ -66,7 +66,7 @@ The `train` and `val` fields specify the paths to the directories containing the
 
 ## Usage
 
-!!! example ""
+!!! Example
 
     === "Python"
 
@@ -88,8 +88,17 @@ The `train` and `val` fields specify the paths to the directories containing the
 
 ## Supported Datasets
 
-* [COCO](coco.md): A large-scale dataset designed for object detection, segmentation, and captioning tasks with over 200K labeled images.
-* [COCO8-seg](coco8-seg.md): A smaller dataset for instance segmentation tasks, containing a subset of 8 COCO images with segmentation annotations.
+## Supported Datasets
+
+- [COCO](coco.md): A comprehensive dataset for object detection, segmentation, and captioning, featuring over 200K labeled images across a wide range of categories.
+
+- [COCO8-seg](coco8-seg.md): A compact, 8-image subset of COCO designed for quick testing of segmentation model training, ideal for CI checks and workflow validation in the `ultralytics` repository.
+
+- [Carparts-seg](carparts-seg.md): A specialized dataset focused on the segmentation of car parts, ideal for automotive applications. It includes a variety of vehicles with detailed annotations of individual car components.
+
+- [Crack-seg](crack-seg.md): A dataset tailored for the segmentation of cracks in various surfaces. Essential for infrastructure maintenance and quality control, it provides detailed imagery for training models to identify structural weaknesses.
+
+- [Package-seg](package-seg.md): A dataset dedicated to the segmentation of different types of packaging materials and shapes. It's particularly useful for logistics and warehouse automation, aiding in the development of systems for package handling and sorting.
 
 ### Adding your own dataset
 
@@ -101,7 +110,7 @@ If you have your own dataset and would like to use it for training segmentation 
 
 You can easily convert labels from the popular COCO dataset format to the YOLO format using the following code snippet:
 
-!!! example ""
+!!! Example
 
     === "Python"
 
@@ -123,7 +132,7 @@ Auto-annotation is an essential feature that allows you to generate a segmentati
 
 To auto-annotate your dataset using the Ultralytics framework, you can use the `auto_annotate` function as shown below:
 
-!!! example ""
+!!! Example
 
     === "Python"
 

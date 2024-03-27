@@ -12,7 +12,7 @@ Training a robust and accurate object detection model requires a comprehensive d
 
 ### Ultralytics YOLO format
 
-The Ultralytics YOLO format is a dataset configuration format that allows you to define the dataset root directory, the relative paths to training/validation/testing image directories or *.txt files containing image paths, and a dictionary of class names. Here is an example:
+The Ultralytics YOLO format is a dataset configuration format that allows you to define the dataset root directory, the relative paths to training/validation/testing image directories or `*.txt` files containing image paths, and a dictionary of class names. Here is an example:
 
 ```yaml
 # Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
@@ -26,7 +26,7 @@ names:
   0: person
   1: bicycle
   2: car
-  ...
+  # ...
   77: teddy bear
   78: hair drier
   79: toothbrush
@@ -48,7 +48,7 @@ When using the Ultralytics YOLO format, organize your training and validation im
 
 Here's how you can use these formats to train your model:
 
-!!! example ""
+!!! Example
 
     === "Python"
 
@@ -82,6 +82,8 @@ Here is a list of the supported datasets and a brief description for each:
 - [**VisDrone**](visdrone.md): A dataset focusing on drone-based images, containing various object categories like cars, pedestrians, and cyclists.
 - [**VOC**](voc.md): PASCAL VOC is a popular object detection dataset with 20 object categories including vehicles, animals, and furniture.
 - [**xView**](xview.md): A dataset containing high-resolution satellite imagery, designed for the detection of various object classes in overhead views.
+- [**Brain-tumor**](brain-tumor.md): This dataset comprises MRI or CT scan images containing information about brain tumor presence, location, and characteristics. It plays a crucial role in training computer vision models to automate tumor identification, facilitating early diagnosis and treatment planning.
+- [**African-wildlife**](african-wildlife.md): Featuring images of African wildlife such as buffalo, elephant, rhino, and zebra, this dataset is instrumental in training computer vision models. It is indispensable for identifying animals across different habitats and contributes significantly to wildlife research endeavors.
 
 ### Adding your own dataset
 
@@ -93,7 +95,7 @@ If you have your own dataset and would like to use it for training detection mod
 
 You can easily convert labels from the popular COCO dataset format to the YOLO format using the following code snippet:
 
-!!! example ""
+!!! Example
 
     === "Python"
 

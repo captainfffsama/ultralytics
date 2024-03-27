@@ -6,7 +6,7 @@ keywords: ImageNette dataset, Ultralytics, YOLO, Image classification, Machine L
 
 # ImageNette Dataset
 
-The [ImageNette](https://github.com/fastai/imagenette) dataset is a subset of the larger [Imagenet](http://www.image-net.org/) dataset, but it only includes 10 easily distinguishable classes. It was created to provide a quicker, easier-to-use version of Imagenet for software development and education.
+The [ImageNette](https://github.com/fastai/imagenette) dataset is a subset of the larger [Imagenet](https://www.image-net.org/) dataset, but it only includes 10 easily distinguishable classes. It was created to provide a quicker, easier-to-use version of Imagenet for software development and education.
 
 ## Key Features
 
@@ -29,7 +29,7 @@ The ImageNette dataset is widely used for training and evaluating deep learning 
 
 To train a model on the ImageNette dataset for 100 epochs with a standard image size of 224x224, you can use the following code snippets. For a comprehensive list of available arguments, refer to the model [Training](../../modes/train.md) page.
 
-!!! example "Train Example"
+!!! Example "Train Example"
 
     === "Python"
 
@@ -64,7 +64,7 @@ For faster prototyping and training, the ImageNette dataset is also available in
 
 To use these datasets, simply replace 'imagenette' with 'imagenette160' or 'imagenette320' in the training command. The following code snippets illustrate this:
 
-!!! example "Train Example with ImageNette160"
+!!! Example "Train Example with ImageNette160"
 
     === "Python"
 
@@ -85,7 +85,7 @@ To use these datasets, simply replace 'imagenette' with 'imagenette160' or 'imag
         yolo detect train data=imagenette160 model=yolov8n-cls.pt epochs=100 imgsz=160
         ```
 
-!!! example "Train Example with ImageNette320"
+!!! Example "Train Example with ImageNette320"
 
     === "Python"
 

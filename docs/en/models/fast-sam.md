@@ -30,19 +30,27 @@ FastSAM is designed to address the limitations of the [Segment Anything Model (S
 
 7. **Model Compression Feasibility:** FastSAM demonstrates the feasibility of a path that can significantly reduce the computational effort by introducing an artificial prior to the structure, thus opening new possibilities for large model architecture for general vision tasks.
 
-## Usage
+## Available Models, Supported Tasks, and Operating Modes
 
-### Python API
+This table presents the available models with their specific pre-trained weights, the tasks they support, and their compatibility with different operating modes like [Inference](../modes/predict.md), [Validation](../modes/val.md), [Training](../modes/train.md), and [Export](../modes/export.md), indicated by ✅ emojis for supported modes and ❌ emojis for unsupported modes.
 
-The FastSAM models are easy to integrate into your Python applications. Ultralytics provides a user-friendly Python API to streamline the process.
+| Model Type | Pre-trained Weights                                                                         | Tasks Supported                              | Inference | Validation | Training | Export |
+|------------|---------------------------------------------------------------------------------------------|----------------------------------------------|-----------|------------|----------|--------|
+| FastSAM-s  | [FastSAM-s.pt](https://github.com/ultralytics/assets/releases/download/v8.1.0/FastSAM-s.pt) | [Instance Segmentation](../tasks/segment.md) | ✅         | ❌          | ❌        | ✅      |
+| FastSAM-x  | [FastSAM-x.pt](https://github.com/ultralytics/assets/releases/download/v8.1.0/FastSAM-x.pt) | [Instance Segmentation](../tasks/segment.md) | ✅         | ❌          | ❌        | ✅      |
 
-#### Predict Usage
+## Usage Examples
+
+The FastSAM models are easy to integrate into your Python applications. Ultralytics provides user-friendly Python API and CLI commands to streamline development.
+
+### Predict Usage
 
 To perform object detection on an image, use the `predict` method as shown below:
 
-!!! example ""
+!!! Example
 
     === "Python"
+
         ```python
         from ultralytics import FastSAM
         from ultralytics.models.fastsam import FastSAMPrompt
@@ -76,6 +84,7 @@ To perform object detection on an image, use the `predict` method as shown below
         ```
 
     === "CLI"
+
         ```bash
         # Load a FastSAM model and segment everything with it
         yolo segment predict model=FastSAM-s.pt source=path/to/bus.jpg imgsz=640
@@ -83,13 +92,14 @@ To perform object detection on an image, use the `predict` method as shown below
 
 This snippet demonstrates the simplicity of loading a pre-trained model and running a prediction on an image.
 
-#### Val Usage
+### Val Usage
 
 Validation of the model on a dataset can be done as follows:
 
-!!! example ""
+!!! Example
 
     === "Python"
+
         ```python
         from ultralytics import FastSAM
 
@@ -101,6 +111,7 @@ Validation of the model on a dataset can be done as follows:
         ```
 
     === "CLI"
+
         ```bash
         # Load a FastSAM model and validate it on the COCO8 example dataset at image size 640
         yolo segment val model=FastSAM-s.pt data=coco8.yaml imgsz=640
@@ -108,24 +119,27 @@ Validation of the model on a dataset can be done as follows:
 
 Please note that FastSAM only supports detection and segmentation of a single class of object. This means it will recognize and segment all objects as the same class. Therefore, when preparing the dataset, you need to convert all object category IDs to 0.
 
-### FastSAM official Usage
+## FastSAM official Usage
 
 FastSAM is also available directly from the [https://github.com/CASIA-IVA-Lab/FastSAM](https://github.com/CASIA-IVA-Lab/FastSAM) repository. Here is a brief overview of the typical steps you might take to use FastSAM:
 
-#### Installation
+### Installation
 
 1. Clone the FastSAM repository:
+
    ```shell
    git clone https://github.com/CASIA-IVA-Lab/FastSAM.git
    ```
 
 2. Create and activate a Conda environment with Python 3.9:
+
    ```shell
    conda create -n FastSAM python=3.9
    conda activate FastSAM
    ```
 
 3. Navigate to the cloned repository and install the required packages:
+
    ```shell
    cd FastSAM
    pip install -r requirements.txt
@@ -136,23 +150,26 @@ FastSAM is also available directly from the [https://github.com/CASIA-IVA-Lab/Fa
    pip install git+https://github.com/openai/CLIP.git
    ```
 
-#### Example Usage
+### Example Usage
 
 1. Download a [model checkpoint](https://drive.google.com/file/d/1m1sjY4ihXBU1fZXdQ-Xdj-mDltW-2Rqv/view?usp=sharing).
 
 2. Use FastSAM for inference. Example commands:
 
     - Segment everything in an image:
+
       ```shell
       python Inference.py --model_path ./weights/FastSAM.pt --img_path ./images/dogs.jpg
       ```
 
     - Segment specific objects using text prompt:
+
       ```shell
       python Inference.py --model_path ./weights/FastSAM.pt --img_path ./images/dogs.jpg --text_prompt "the yellow dog"
       ```
 
     - Segment objects within a bounding box (provide box coordinates in xywh format):
+
       ```shell
       python Inference.py --model_path ./weights/FastSAM.pt --img_path ./images/dogs.jpg --box_prompt "[570,200,230,400]"
       ```
@@ -168,7 +185,7 @@ Additionally, you can try FastSAM through a [Colab demo](https://colab.research.
 
 We would like to acknowledge the FastSAM authors for their significant contributions in the field of real-time instance segmentation:
 
-!!! note ""
+!!! Quote ""
 
     === "BibTeX"
 

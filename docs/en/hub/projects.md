@@ -10,6 +10,17 @@ keywords: Ultralytics, HUB projects, Create project, Edit project, Share project
 
 This creates a unified and organized workspace that facilitates easier model management, comparison and development. Having similar models or various iterations together can facilitate rapid benchmarking, as you can compare their effectiveness. This can lead to faster, more insightful iterative development and refinement of your models.
 
+<p align="center">
+  <br>
+  <iframe loading="lazy" width="720" height="405" src="https://www.youtube.com/embed/Gc6K5eKrTNQ"
+    title="YouTube video player" frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen>
+  </iframe>
+  <br>
+  <strong>Watch:</strong> Train YOLOv8 Pose Model on Tiger-Pose Dataset Using Ultralytics HUB
+</p>
+
 ## Create Project
 
 Navigate to the [Projects](https://hub.ultralytics.com/projects) page by clicking on the **Projects** button in the sidebar.
@@ -44,7 +55,7 @@ Next, [train a model](https://docs.ultralytics.com/hub/models/#train-model) insi
 
 ## Share Project
 
-!!! info "Info"
+!!! Info "Info"
 
     Ultralytics HUB's sharing functionality provides a convenient way to share projects with others. This feature is designed to accommodate both existing Ultralytics HUB users and those who have yet to create an account.
 
@@ -68,7 +79,7 @@ Set the general access to "Unlisted" and click **Save**.
 
 ![Ultralytics HUB screenshot of the Share Project dialog with an arrow pointing to the dropdown and one to the Save button](https://raw.githubusercontent.com/ultralytics/assets/main/docs/hub/projects/hub_share_project_3.jpg)
 
-!!! warning "Warning"
+!!! Warning "Warning"
 
     When changing the general access of a project, the general access of the models inside the project will be changed as well.
 
@@ -108,7 +119,7 @@ Navigate to the Project page of the project you want to delete, open the project
 
     ![Ultralytics HUB screenshot of the Projects page with an arrow pointing to the Delete option of one of the projects](https://raw.githubusercontent.com/ultralytics/assets/main/docs/hub/projects/hub_delete_project_2.jpg)
 
-!!! warning "Warning"
+!!! Warning "Warning"
 
     When deleting a project, the models inside the project will be deleted as well.
 
@@ -124,7 +135,7 @@ Navigate to the Project page of the project where the models you want to compare
 
 ![Ultralytics HUB screenshot of the Project page with an arrow pointing to the Charts tab](https://raw.githubusercontent.com/ultralytics/assets/main/docs/hub/projects/hub_compare_models_1.jpg)
 
-This will display all the relevant charts. Each chart corresponds to a different metric and contains the performance of each model for that metric. The models are represented by different colors and you can hover over each data point to get more information.
+This will display all the relevant charts. Each chart corresponds to a different metric and contains the performance of each model for that metric. The models are represented by different colors, and you can hover over each data point to get more information.
 
 ![Ultralytics HUB screenshot of the Charts tab inside the Project page](https://raw.githubusercontent.com/ultralytics/assets/main/docs/hub/projects/hub_compare_models_2.jpg)
 

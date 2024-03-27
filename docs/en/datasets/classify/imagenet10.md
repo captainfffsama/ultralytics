@@ -27,7 +27,7 @@ The ImageNet10 dataset is useful for quickly testing and debugging computer visi
 
 To test a deep learning model on the ImageNet10 dataset with an image size of 224x224, you can use the following code snippets. For a comprehensive list of available arguments, refer to the model [Training](../../modes/train.md) page.
 
-!!! example "Test Example"
+!!! Example "Test Example"
 
     === "Python"
 
@@ -52,14 +52,13 @@ To test a deep learning model on the ImageNet10 dataset with an image size of 22
 
 The ImageNet10 dataset contains a subset of images from the original ImageNet dataset. These images are chosen to represent the first 10 classes in the dataset, providing a diverse yet compact dataset for quick testing and evaluation.
 
-![Dataset sample images](https://user-images.githubusercontent.com/26833433/239689723-16f9b4a7-becc-4deb-b875-d3e5c28eb03b.png)
-The example showcases the variety and complexity of the images in the ImageNet10 dataset, highlighting its usefulness for sanity checks and quick testing of computer vision models.
+![Dataset sample images](https://user-images.githubusercontent.com/26833433/239689723-16f9b4a7-becc-4deb-b875-d3e5c28eb03b.png) The example showcases the variety and complexity of the images in the ImageNet10 dataset, highlighting its usefulness for sanity checks and quick testing of computer vision models.
 
 ## Citations and Acknowledgments
 
 If you use the ImageNet10 dataset in your research or development work, please cite the original ImageNet paper:
 
-!!! note ""
+!!! Quote ""
 
     === "BibTeX"
 

@@ -10,14 +10,13 @@ keywords: Ultralytics, YOLOv8, pose detection, COCO8-Pose dataset, dataset, mode
 
 [Ultralytics](https://ultralytics.com) COCO8-Pose is a small, but versatile pose detection dataset composed of the first 8 images of the COCO train 2017 set, 4 for training and 4 for validation. This dataset is ideal for testing and debugging object detection models, or for experimenting with new detection approaches. With 8 images, it is small enough to be easily manageable, yet diverse enough to test training pipelines for errors and act as a sanity check before training larger datasets.
 
-This dataset is intended for use with Ultralytics [HUB](https://hub.ultralytics.com)
-and [YOLOv8](https://github.com/ultralytics/ultralytics).
+This dataset is intended for use with Ultralytics [HUB](https://hub.ultralytics.com) and [YOLOv8](https://github.com/ultralytics/ultralytics).
 
 ## Dataset YAML
 
 A YAML (Yet Another Markup Language) file is used to define the dataset configuration. It contains information about the dataset's paths, classes, and other relevant information. In the case of the COCO8-Pose dataset, the `coco8-pose.yaml` file is maintained at [https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco8-pose.yaml](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco8-pose.yaml).
 
-!!! example "ultralytics/cfg/datasets/coco8-pose.yaml"
+!!! Example "ultralytics/cfg/datasets/coco8-pose.yaml"
 
     ```yaml
     --8<-- "ultralytics/cfg/datasets/coco8-pose.yaml"
@@ -27,7 +26,7 @@ A YAML (Yet Another Markup Language) file is used to define the dataset configur
 
 To train a YOLOv8n-pose model on the COCO8-Pose dataset for 100 epochs with an image size of 640, you can use the following code snippets. For a comprehensive list of available arguments, refer to the model [Training](../../modes/train.md) page.
 
-!!! example "Train Example"
+!!! Example "Train Example"
 
     === "Python"
 
@@ -62,7 +61,7 @@ The example showcases the variety and complexity of the images in the COCO8-Pose
 
 If you use the COCO dataset in your research or development work, please cite the following paper:
 
-!!! note ""
+!!! Quote ""
 
     === "BibTeX"
 
