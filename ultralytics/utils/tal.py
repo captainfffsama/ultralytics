@@ -136,13 +136,13 @@ class TaskAlignedAssigner(nn.Module):
         )
 
         # Assigned target
-        # target_labels, target_bboxes, target_scores = self.get_targets(
-        #     gt_labels, gt_bboxes, target_gt_idx, fg_mask
-        # )
-        # NOTE: target_scores not one hot now
-        target_labels, target_bboxes, target_scores = self.assigned_target(
-            gt_labels, gt_bboxes, target_gt_idx, fg_mask,o_mask_pos
+        target_labels, target_bboxes, target_scores = self.get_targets(
+            gt_labels, gt_bboxes, target_gt_idx, fg_mask
         )
+        # NOTE: target_scores not one hot now
+        # target_labels, target_bboxes, target_scores = self.assigned_target(
+        #     gt_labels, gt_bboxes, target_gt_idx, fg_mask,o_mask_pos
+        # )
 
         # Normalize
         align_metric *= mask_pos
