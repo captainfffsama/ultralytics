@@ -436,11 +436,7 @@ class ConfusionMatrix:
             if n and sum(j) == 1:
                 self.matrix[detection_classes[m1[j]], gc] += 1  # correct
             else:
-                try:
-                    self.matrix[self.nc, gc] += 1  # true background
-                except:
-                    print(self.nc)
-                    # breakpoint()
+                self.matrix[self.nc, gc] += 1  # true background
 
         if n:
             for i, dc in enumerate(detection_classes):
