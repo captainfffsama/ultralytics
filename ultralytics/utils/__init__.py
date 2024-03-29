@@ -15,6 +15,7 @@ import uuid
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Union
+from weakref import WeakValueDictionary
 
 import cv2
 import matplotlib.pyplot as plt
@@ -949,6 +950,7 @@ class SettingsManager(dict):
         }
 
         super().__init__(copy.deepcopy(self.defaults))
+        self.cache=WeakValueDictionary()
 
         with torch_distributed_zero_first(RANK):
             if not self.file.exists():

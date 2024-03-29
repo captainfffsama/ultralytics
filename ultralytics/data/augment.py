@@ -1038,7 +1038,7 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
     """Convert images to a size suitable for YOLOv8 training."""
     pre_transform = Compose(
         [
-            Mosaic(dataset, imgsz=imgsz, p=hyp.mosaic, skip_class_idx=(33,34)),
+            Mosaic(dataset, imgsz=imgsz, p=hyp.mosaic),
             CopyPaste(p=hyp.copy_paste),
             RandomPerspective(
                 degrees=hyp.degrees,
@@ -1064,10 +1064,10 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
             pre_transform,
             MixUp(dataset, pre_transform=pre_transform, p=hyp.mixup),
             Albumentations(p=1.0),
-            RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v, skip_class_idx=(6,7,8,9,10,17,18,33,34)),
-            RandomRotate90(p=0.2, skip_class_idx=(31,32)),
-            RandomFlip(direction='vertical', p=hyp.flipud, skip_class_idx=(11,12,19,20,31,32)),
-            RandomFlip(direction='horizontal', p=hyp.fliplr, flip_idx=flip_idx, skip_class_idx=(4,5,17,18))  # transforms
+            RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v),
+            RandomRotate90(p=0.2),
+            RandomFlip(direction='vertical', p=hyp.flipud),
+            RandomFlip(direction='horizontal', p=hyp.fliplr, flip_idx=flip_idx)  # transforms
         ]
     )  # transforms
 

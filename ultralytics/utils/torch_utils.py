@@ -141,7 +141,8 @@ def select_device(device="", batch=0, newline=False, verbose=True):
         if n > 1 and batch > 0 and batch % n != 0:  # check batch_size is divisible by device_count
             raise ValueError(
                 f"'batch={batch}' must be a multiple of GPU count {n}. Try 'batch={batch // n * n}' or "
-                f"'batch={batch // n * n + n}', the nearest batch sizes evenly divisible by {n}."
+                f"'batch={batch // n * n + n}', the nearest batch sizes evenly divisible by {n}. \n"
+                f"current device is: {device}\n"
             )
         space = " " * (len(s) + 1)
         for i, d in enumerate(devices):
