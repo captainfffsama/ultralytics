@@ -3,7 +3,7 @@
 @Author: captainfffsama
 @Date: 2023-08-18 16:35:03
 @LastEditors: captainfffsama tuanzhangsama@outlook.com
-@LastEditTime: 2024-01-08 16:55:20
+@LastEditTime: 2024-03-29 16:10:17
 @FilePath: /ultralytics/ultralytics/grpc_server/model.py
 @Description:
 '''
@@ -13,11 +13,13 @@ from typing import Union, Tuple
 import torch
 from torch import nn
 import datetime
+from packaging.version import Version
 
 from ..models import YOLO
 from ..engine.results import Results
 from ultralytics.nn.modules import SPPF, SPP
 from ultralytics.utils import LOGGER
+from ultralytics import __version__ as u_version
 import numpy as np
 import cv2
 
@@ -81,10 +83,13 @@ class Detector(dld_pb2_grpc.AiServiceServicer):
             final_result.append((self.label_dict[l], s, *box.tolist()))
         return final_result
 
-    def infer(self, img):
-        result: Results = self.model.predict(img, conf=0.05, device=self.device, iou=self.nms)[0]
-        new_result = self._standardized_result(result)
-        return new_result
+    def infer(self, img,**kwargs):
+        result= self.model.predict(img, conf=0.05, device=self.device, iou=self.nms,**kwargs)[0]
+        if isinstance(result,Results):
+            new_result = self._standardized_result(result)
+            return new_result
+        else:
+            return result
 
     def DlDetection(self, request, context):
         img_base64 = base64.b64decode(request.imdata)
@@ -134,18 +139,21 @@ class Detector(dld_pb2_grpc.AiServiceServicer):
         img = img.float()  # uint8 to fp16/32
         img /= 255  # 0 - 255 to 0.0 - 1.0
 
-        if self.embedding_model is None:
-            self.embedding_model = nn.Sequential()
-            all_nn = next(model.model.children())
-            for i in all_nn:
-                self.embedding_model.append(i)
-                if isinstance(i, SPPF) or isinstance(i, SPP):
-                    break
-            self.embedding_model.append(nn.AdaptiveAvgPool2d((1, 1)))
-            self.embedding_model.to(self.device)
-            self.embedding_model.eval()
+        if Version(u_version)>=Version("8.1.0"):
+            result=self.infer(img,embed=[9,])
+        else:
+            if self.embedding_model is None:
+                self.embedding_model = nn.Sequential()
+                all_nn = next(model.model.children())
+                for i in all_nn:
+                    self.embedding_model.append(i)
+                    if isinstance(i, SPPF) or isinstance(i, SPP):
+                        break
+                self.embedding_model.append(nn.AdaptiveAvgPool2d((1, 1)))
+                self.embedding_model.to(self.device)
+                self.embedding_model.eval()
 
-        with torch.no_grad():
-            result = self.embedding_model(img)
-            result = result.cpu().numpy()
+            with torch.no_grad():
+                result = self.embedding_model(img)
+        result = result.detach().cpu().numpy()
         return result
