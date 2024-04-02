@@ -165,6 +165,7 @@ class TaskAlignedAssigner(nn.Module):
         target_labels = gt_labels.long().flatten()[target_gt_idx]  # (b, h*w)
 
         # Assigned target boxes, (b, max_num_obj, 4) -> (b, h*w, 4)
+        # FIXME: 这里可能有问题
         target_bboxes = gt_bboxes.view(-1, 4)[target_gt_idx]
 
         # Assigned target scores
