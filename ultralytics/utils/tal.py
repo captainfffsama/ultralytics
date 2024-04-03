@@ -320,21 +320,26 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         # Normalize
         align_metric *= mask_pos
         pos_align_metrics = align_metric.amax(dim=-1, keepdim=True)  # b, max_num_obj
+
         pos_overlaps = (overlaps * mask_pos).amax(dim=-1, keepdim=True)  # b, max_num_obj
         norm_align_metric = (align_metric * pos_overlaps / (pos_align_metrics + self.eps)).amax(-2).unsqueeze(-1)
-
         # target_scores (Tensor): shape(bs, num_total_anchors, num_classes)
         target_scores = target_scores * norm_align_metric
 
         # NOTE: if use assigned_target, use this line
-        # soft score will get a bad result
         # pos_overlaps = (overlaps * o_mask_pos).amax(
         #     dim=-1, keepdim=True
         # )  # b, max_num_obj
         # norm_align_metric=(align_metric * pos_overlaps / (pos_align_metrics + self.eps)).permute(0,2,1)
-        # tg_idx=gt_labels.expand(-1,-1,norm_align_metric.shape[1]).permute(0,2,1).long()
-        # target_scores=target_scores.type_as(norm_align_metric)
-        # target_scores.scatter_(2,tg_idx,norm_align_metric,reduce='multiply')
+        # tg_idx=(gt_labels+1).expand(-1,-1,norm_align_metric.shape[1]).permute(0,2,1).long()
+
+        # tmp= torch.zeros(
+        #     (target_scores.shape[0],target_scores.shape[1], target_scores.shape[2] + 1),
+        #     dtype=torch.int64,
+        #     device=target_scores.device,
+        # )  # (b, h*w, 81)
+        # tmp.scatter_(2,tg_idx,norm_align_metric,reduce='multiply')
+        # target_scores=target_scores*tmp[:,:,1:]
 
         return (
             target_labels,
