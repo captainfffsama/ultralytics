@@ -122,7 +122,7 @@ def normalize_tensor(img: np.ndarray):
             img = img.astype(np.uint8)
             print("img type to uint8")
         else:
-            img = img.astype(np.float)
+            img = img.astype(np.float64)
     return img
 
 

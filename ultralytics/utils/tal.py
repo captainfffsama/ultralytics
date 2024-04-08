@@ -1,12 +1,14 @@
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 
-from typing import Tuple
+from typing import Tuple, Optional
 import torch
 import torch.nn as nn
 
 from .checks import check_version
 from .metrics import bbox_iou, probiou
 from .ops import xywhr2xyxyxyxy
+from ultralytics import debug_tools as D
+
 
 TORCH_1_10 = check_version(torch.__version__, "1.10.0")
 
@@ -84,7 +86,20 @@ class TaskAlignedAssigner(nn.Module):
         pos_align_metrics = align_metric.amax(dim=-1, keepdim=True)  # b, max_num_obj
         pos_overlaps = (overlaps * mask_pos).amax(dim=-1, keepdim=True)  # b, max_num_obj
         norm_align_metric = (align_metric * pos_overlaps / (pos_align_metrics + self.eps)).amax(-2).unsqueeze(-1)
+
         target_scores = target_scores * norm_align_metric
+
+        # for i in range(target_scores.shape[0]):
+        #     mask = target_scores[i].bool()
+        #     nam = norm_align_metric[i].masked_select(mask).detach()
+        #     l90num=(nam>0.9).sum()
+        #     gt_num = mask_gt[i].sum()
+        #     print(
+        #         f"batch {i} mean: {nam.mean().detach()},std: {nam.std().detach()}, \
+        #         sigma: {nam.std().detach()+nam.mean().detach()}, \
+        #         num:{nam.shape},gt_num:{gt_num},avg_anchor:{nam.shape[0]/gt_num},\
+        #         lager90num: {l90num},"
+        #     )
 
         return target_labels, target_bboxes, target_scores, fg_mask.bool(), target_gt_idx
 
@@ -133,7 +148,7 @@ class TaskAlignedAssigner(nn.Module):
 
     def iou_calculation(self, gt_bboxes, pd_bboxes):
         """IoU calculation for horizontal bounding boxes."""
-        return bbox_iou(gt_bboxes, pd_bboxes, xywh=False, CIoU=True).squeeze(-1).clamp_(0)
+        return bbox_iou(gt_bboxes, pd_bboxes, xywh=False, GIoU=True).squeeze(-1).clamp_(0)
 
     def select_topk_candidates(self, metrics, largest=True, topk_mask=None):
         """
@@ -305,7 +320,8 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
                 torch.zeros_like(pd_scores[..., 0]).to(device),
             )
 
-        o_mask_pos, align_metric, overlaps = self.get_pos_mask(
+        # all B,max_gt_num,h*w
+        o_mask_pos, align_metric, overlaps, mask_in_gts = self.get_pos_mask(
             pd_scores, pd_bboxes, gt_labels, gt_bboxes, anc_points, mask_gt
         )
 
@@ -314,7 +330,7 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         # Assigned target
         # NOTE: target_scores not one hot now
         target_labels, target_bboxes, target_scores = self.assigned_target(
-            gt_labels, gt_bboxes, target_gt_idx, fg_mask,o_mask_pos
+            gt_labels, gt_bboxes, target_gt_idx, fg_mask, o_mask_pos
         )
 
         # Normalize
@@ -325,6 +341,7 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         norm_align_metric = (align_metric * pos_overlaps / (pos_align_metrics + self.eps)).amax(-2).unsqueeze(-1)
         # target_scores (Tensor): shape(bs, num_total_anchors, num_classes)
         target_scores = target_scores * norm_align_metric
+
 
         # NOTE: if use assigned_target, use this line
         # pos_overlaps = (overlaps * o_mask_pos).amax(
@@ -347,6 +364,8 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
             target_scores,
             fg_mask.bool(),
             target_gt_idx,
+            o_mask_pos.bool(),
+            ~(mask_in_gts.bool())
         )
 
     def assigned_target(
@@ -415,6 +434,59 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         # r2=D.show_flatten_tensor(target_scores,1,show=False)
 
         return target_labels, target_bboxes, target_scores
+
+    def get_pos_mask(self, pd_scores, pd_bboxes, gt_labels, gt_bboxes, anc_points, mask_gt):
+        """Get in_gts mask, (b, max_num_obj, h*w)."""
+        mask_in_gts = self.select_candidates_in_gts(anc_points, gt_bboxes)
+        # Get anchor_align metric, (b, max_num_obj, h*w)
+        align_metric, overlaps = self.get_box_metrics(pd_scores, pd_bboxes, gt_labels, gt_bboxes, mask_in_gts * mask_gt)
+        # Get topk_metric mask, (b, max_num_obj, h*w)
+        mask_topk = self.select_auto_topk(align_metric, mask_in_gts, mask_gt.bool())
+        # Merge all mask to a final mask, (b, max_num_obj, h*w)
+        mask_pos = mask_topk * mask_in_gts * mask_gt
+
+        return mask_pos, align_metric, overlaps, mask_in_gts
+
+    def select_auto_topk(
+        self,
+        metrics: torch.Tensor,
+        mask_in_gts: torch.Tensor,
+        mask_gt: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """
+        Select the top-k candidates based on the given metrics.
+
+        Args:
+            metrics (Tensor): A tensor of shape (b, max_num_obj, h*w), where b is the batch size,
+                              max_num_obj is the maximum number of objects, and h*w represents the
+                              total number of anchor points.
+            mask_in_gts(Tensor): A boolean tensor of shape (b, max_num_obj, h*w), where anchor in gt.
+            largest (bool): If True, select the largest values; otherwise, select the smallest values.
+            mask_gt (Tensor): A boolean tensor of shape (b, max_num_obj, h*w), where gt is available.
+
+        Returns:
+            (Tensor): A tensor of shape (b, max_num_obj, h*w) containing the selected top-k candidates.
+        """
+        # mask_mean
+        mask_obj_num = mask_in_gts.sum(-1)  # B, max_num_obj
+        if mask_gt is None:
+            mask_gt = torch.ones_like(mask_obj_num, dtype=torch.bool)
+            mask_gt = mask_gt[:, :, None]
+        mask_tmp = ~(mask_gt.squeeze(-1).type(torch.bool)) * self.eps
+        mask_obj_num += mask_tmp
+        mask_mean = metrics.sum(-1) / mask_obj_num  # B,max_num_obj
+
+        # mask_std
+        mask_std = ((metrics - mask_mean.unsqueeze(-1)) ** 2).sum(-1).sqrt()
+
+        thr = mask_mean +1* mask_std
+
+        metrics_idx = metrics > thr[:, :, None]
+
+        max_args = torch.argmax(metrics, dim=-1)
+        metrics_idx = metrics_idx.scatter(2, max_args[:, :, None], True)
+        metrics_idx = metrics_idx & mask_gt
+        return metrics_idx.to(metrics.dtype)
 
 
 class RotatedTaskAlignedAssigner(TaskAlignedAssigner):
