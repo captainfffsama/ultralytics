@@ -314,7 +314,7 @@ class v8HQDetectionLoss(v8DetectionLoss):
         bg_mask=~((~bg_mask).sum(1).bool())
         fgvbg_w=min(bg_mask.sum()/(3*fg_mask.sum()+1),10.0)
 
-        loss_weight=bg_mask+fg_mask*fgvbg_w
+        loss_weight=bg_mask+fg_mask
 
         # Cls loss
         # loss[1] = self.varifocal_loss(pred_scores, target_scores, target_labels) / target_scores_sum  # VFL way
@@ -328,6 +328,8 @@ class v8HQDetectionLoss(v8DetectionLoss):
             loss[0], loss[2] = self.bbox_loss(
                 pred_distri, pred_bboxes, anchor_points, target_bboxes, target_scores, target_scores_sum, fg_mask
             )
+        else:
+            print("no fg")
 
         loss[0] *= self.hyp.box  # box gain
         loss[1] *= self.hyp.cls  # cls gain
