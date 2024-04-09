@@ -950,6 +950,7 @@ def set_sentry():
         sentry_sdk.set_user({"id": SETTINGS["uuid"]})  # SHA-256 anonymized UUID hash
 
 
+
 class SettingsManager(dict):
     """
     Manages Ultralytics settings stored in a YAML file.
@@ -996,6 +997,7 @@ class SettingsManager(dict):
 
         super().__init__(copy.deepcopy(self.defaults))
         self.cache=WeakValueDictionary()
+        self.temp_args={}
 
         with torch_distributed_zero_first(RANK):
             if not self.file.exists():
