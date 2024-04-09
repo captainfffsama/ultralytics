@@ -520,20 +520,21 @@ class BaseTrainer:
         except Exception as e:
             raise RuntimeError(emojis(f"Dataset '{clean_url(self.args.data)}' error ❌ {e}")) from e
         self.data = data
-        if "names" in self.data:
-            self.name2clsidx_map = OrderedDict({v: k for k, v in self.data["names"].items()})
-            SETTINGS.cache["name2clsidx"]=self.name2clsidx_map
-            if "ag_skip" in self.args.chiebot_cfg and isinstance(self.args.chiebot_cfg["ag_skip"],dict):
-                self.chiebot_ag_skip=defaultdict(list)
-                for k,v in self.args.chiebot_cfg["ag_skip"].items():
-                    for i in v:
-                        if i in self.name2clsidx_map:
-                            self.chiebot_ag_skip[k].append(self.name2clsidx_map[i])
-                        else:
-                            LOGGER.warning(f"WARNING ⚠️: the class {i} in {k} is not valid ")
+        if RANK in {-1 ,0}:
+            if "names" in self.data:
+                self.name2clsidx_map = OrderedDict({v: k for k, v in self.data["names"].items()})
+                SETTINGS.cache["name2clsidx"]=self.name2clsidx_map
+                if "ag_skip" in self.args.chiebot_cfg and isinstance(self.args.chiebot_cfg["ag_skip"],dict):
+                    self.chiebot_ag_skip=defaultdict(list)
+                    for k,v in self.args.chiebot_cfg["ag_skip"].items():
+                        for i in v:
+                            if i in self.name2clsidx_map:
+                                self.chiebot_ag_skip[k].append(self.name2clsidx_map[i])
+                            else:
+                                LOGGER.warning(f"WARNING ⚠️: the class {i} in {k} is not valid ")
 
-                self.chiebot_ag_skip=OrderedDict(self.chiebot_ag_skip)
-                SETTINGS.cache["cfg_ag_skip"] = self.chiebot_ag_skip
+                    self.chiebot_ag_skip=OrderedDict(self.chiebot_ag_skip)
+                    SETTINGS.cache["cfg_ag_skip"] = self.chiebot_ag_skip
         return data["train"], data.get("val") or data.get("test")
 
     def setup_model(self):

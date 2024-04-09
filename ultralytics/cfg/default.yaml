@@ -129,6 +129,5 @@ tracker: botsort.yaml # (str) tracker type, choices=[botsort.yaml, bytetrack.yam
 chiebot_cfg:
   # key is the class name of augment
   ag_skip:
-    Mosaic: ["cat"]
     RandomFlip_V: ["person"]
     RandomFlip_H: ["captainfff"]

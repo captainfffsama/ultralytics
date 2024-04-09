@@ -65,7 +65,6 @@ class BaseTransform:
         self.apply_semantic(labels)
 
 
-# @skip_class_support
 class Compose:
     """Class for composing multiple image transformations."""
 
@@ -178,7 +177,6 @@ class BaseMixTransform:
         return labels
 
 
-@skip_class_support
 class Mosaic(BaseMixTransform):
     """
     Mosaic augmentation.
@@ -393,7 +391,6 @@ class MixUp(BaseMixTransform):
         return labels
 
 
-# @skip_class_support
 class RandomPerspective:
     """
     Implements random perspective and affine transformations on images and corresponding bounding boxes, segments, and
@@ -912,7 +909,6 @@ class CopyPaste:
         return labels
 
 
-# @skip_class_support
 class Albumentations:
     """
     Albumentations transformations.
