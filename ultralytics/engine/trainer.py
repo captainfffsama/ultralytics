@@ -522,7 +522,7 @@ class BaseTrainer:
         self.data = data
         if "names" in self.data:
             self.name2clsidx_map = OrderedDict({v: k for k, v in self.data["names"].items()})
-            SETTINGS.temp_args["name2clsidx"]=deepcopy(self.name2clsidx_map)
+            self.args.chiebot_cache_name2clsidx=deepcopy(self.name2clsidx_map)
             if "ag_skip" in self.args.chiebot_cfg and isinstance(self.args.chiebot_cfg["ag_skip"],dict):
                 self.chiebot_ag_skip=defaultdict(list)
                 for k,v in self.args.chiebot_cfg["ag_skip"].items():
@@ -533,7 +533,7 @@ class BaseTrainer:
                             LOGGER.warning(f"WARNING ⚠️: the class {i} in {k} is not valid ")
 
                 self.chiebot_ag_skip=OrderedDict(self.chiebot_ag_skip)
-                SETTINGS.temp_args["cfg_ag_skip"] = deepcopy(self.chiebot_ag_skip)
+                self.args.chiebot_cache_cfg_ag_skip=deepcopy(self.chiebot_ag_skip)
         return data["train"], data.get("val") or data.get("test")
 
     def setup_model(self):

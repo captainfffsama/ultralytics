@@ -1182,10 +1182,10 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
             pre_transform,
             MixUp(dataset, pre_transform=pre_transform, p=hyp.mixup),
             Albumentations(p=1.0),
-            RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v),
-            # RandomRotate90(p=0.2),
-            RandomFlip(direction='vertical', p=hyp.flipud),
-            RandomFlip(direction='horizontal', p=hyp.fliplr, flip_idx=flip_idx)  # transforms
+            RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v,hyper_params=hyp),
+            # RandomRotate90(p=0.2,hyper_params=hyp),
+            RandomFlip(direction='vertical', p=hyp.flipud,hyper_params=hyp),
+            RandomFlip(direction='horizontal', p=hyp.fliplr, flip_idx=flip_idx,hyper_params=hyp)  # transforms
         ]
     )  # transforms
 

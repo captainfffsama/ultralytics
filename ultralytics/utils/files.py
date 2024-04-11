@@ -9,6 +9,27 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
+import fcntl
+import shelve
+import typing
+
+
+@contextmanager
+def open_safe_shelve(db_path: str, flag: typing.Literal["r", "w", "c", "n"] = "c", protocol=None, writeback=False):
+    if flag in ("w", "c", "n"):
+        lockfile_lock_mode = fcntl.LOCK_EX
+    elif flag == "r":
+        lockfile_lock_mode = fcntl.LOCK_SH
+    else:
+        raise ValueError(f"Invalid mode: {flag}, only 'r', 'w', 'c', 'n' are allowed.")
+
+    with open(f"{db_path}.lock", "w") as lock:  # According to https://docs.python.org/3/library/fcntl.html#fcntl.flock, the file must be opened in write mode on some systems.
+        fcntl.flock(lock.fileno(), lockfile_lock_mode)  # Block until lock is acquired.
+        try:
+            yield shelve.open(db_path, flag=flag, protocol=protocol, writeback=writeback)
+        finally:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)  # Release lock
+
 
 class WorkingDirectory(contextlib.ContextDecorator):
     """Usage: @WorkingDirectory(dir) decorator or 'with WorkingDirectory(dir):' context manager."""

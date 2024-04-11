@@ -307,6 +307,10 @@ def _handle_deprecation(custom):
 
     return custom
 
+SKIP_CHECK_KEYS={
+"chiebot_cache_cfg_ag_skip",
+"chiebot_cache_name2clsidx",
+}
 
 def check_dict_alignment(base: Dict, custom: Dict, e=None):
     """
@@ -320,7 +324,7 @@ def check_dict_alignment(base: Dict, custom: Dict, e=None):
     """
     custom = _handle_deprecation(custom)
     base_keys, custom_keys = (set(x.keys()) for x in (base, custom))
-    mismatched = [k for k in custom_keys if k not in base_keys]
+    mismatched = [k for k in custom_keys if (k not in base_keys) and (k not in SKIP_CHECK_KEYS)]
     if mismatched:
         from difflib import get_close_matches
 

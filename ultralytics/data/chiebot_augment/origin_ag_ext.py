@@ -11,7 +11,8 @@
 import numpy as np
 from typing import Tuple, Optional, Dict, Any, Union, List
 import random
-from ultralytics.utils import SETTINGS, LOGGER
+from ultralytics.utils import  LOGGER
+from functools import wraps
 
 from albumentations.core.transforms_interface import DualTransform
 import albumentations.augmentations.crops.functional as ACF
@@ -20,51 +21,51 @@ import albumentations.augmentations.crops.functional as ACF
 def skip_class_support(cls):
     """transform support skip some class now"""
 
-    def __new__(csl, *args,skip_class_idx: Optional[Tuple[Union[int, str]]] = tuple(), **kwargs):
-        self= object.__new__(csl)
-        cfg_skip = []
-        setting_cache_ag_skip = SETTINGS.temp_args.get("cfg_ag_skip")
-        cache_search_idx=self.__class__.__name__
-        if "RandomFlip"==cache_search_idx:
-            default_args=""
-            if args:
-                default_args=str(args[0])
-            direction=kwargs.get("direction",default_args)
-            cache_search_idx+="_{}".format(direction[0].upper())
-        if setting_cache_ag_skip is not None:
-            cfg_skip = setting_cache_ag_skip.get(cache_search_idx, [])
+    original_init = cls.__init__
 
-        setting_cache_n2i = SETTINGS.temp_args.get("name2clsidx")
-        n2i_check=True
-        if setting_cache_n2i is None:
-            LOGGER.warning("WARNING ⚠️:setting_cache_n2i is None")
-            setting_cache_n2i = {}
-            n2i_check=False
+    @wraps(original_init)
+    def __init__(
+        self,
+        *args,
+        skip_class_idx: Optional[Tuple[Union[int, str]]] = tuple(),
+        hyper_params: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ):
+        original_init(self, *args, **kwargs)
+        setting_cache_ag_skip = {}
+        setting_cache_n2i = {}
+        if hyper_params is not None:
+            setting_cache_ag_skip = hyper_params.get("chiebot_cache_cfg_ag_skip", {})
+            setting_cache_n2i = hyper_params.get("chiebot_cache_name2clsidx", {})
+        cache_search_idx = self.__class__.__name__
+        if "RandomFlip" == cache_search_idx:
+            cache_search_idx += "_{}".format(self.direction[0].upper())
+        cfg_skip = setting_cache_ag_skip.get(cache_search_idx, [])
+
+
         pp = repr(setting_cache_n2i.keys())
         for i in skip_class_idx:
             if isinstance(i, str):
-                if n2i_check and i not in setting_cache_n2i:
+                if i not in setting_cache_n2i:
                     LOGGER.warning(f"WARNING ⚠️:{self.__class__.__name__} init skip class {i} not in {pp}")
                     continue
                 cfg_skip.append(setting_cache_n2i[i])
-            if n2i_check and i not in setting_cache_n2i.values():
                 LOGGER.warning(f"WARNING ⚠️:{self.__class__.__name__} init skip class {i} not in {pp} idx")
                 continue
             cfg_skip.append(i)
 
-
         self.skip_class = tuple(dict.fromkeys(cfg_skip).keys())
         if self.skip_class:
             if setting_cache_n2i is not None:
-                idx2name={v:k for k,v in setting_cache_n2i.items()}
-                skip_class_names=[idx2name.get(i,i) for i in self.skip_class]
-                pps=repr(skip_class_names)
-                ppargs=str(args) if args else ""
-                ppkwargs=str(kwargs) if kwargs else ""
-                LOGGER.info(f"INFO💡:{csl.__name__}({ppargs},{ppkwargs}) will skip class :{pps}")
+                idx2name = {v: k for k, v in setting_cache_n2i.items()}
+                skip_class_names = [idx2name.get(i, i) for i in self.skip_class]
+                pps = repr(skip_class_names)
+                ppargs = str(args) if args else ""
+                ppkwargs = str(kwargs) if kwargs else ""
+                LOGGER.info(f"INFO💡:{self.__class__.__name__}({ppargs},{ppkwargs}) will skip class :{pps}")
 
-        return self
-    cls.__new__=__new__
+
+    cls.__init__ = __init__
 
     original_call = cls.__call__
 
