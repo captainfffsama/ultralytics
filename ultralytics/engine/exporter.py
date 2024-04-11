@@ -1,6 +1,7 @@
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 """
 Export a YOLOv8 PyTorch model to other formats. TensorFlow exports authored by https://github.com/zldrobit
+
 Format                  | `format=argument`         | Model
 ---                     | ---                       | ---
 PyTorch                 | -                         | yolov8n.pt
@@ -16,14 +17,18 @@ TensorFlow Edge TPU     | `edgetpu`                 | yolov8n_edgetpu.tflite
 TensorFlow.js           | `tfjs`                    | yolov8n_web_model/
 PaddlePaddle            | `paddle`                  | yolov8n_paddle_model/
 NCNN                    | `ncnn`                    | yolov8n_ncnn_model/
+
 Requirements:
     $ pip install "ultralytics[export]"
+
 Python:
     from ultralytics import YOLO
     model = YOLO('yolov8n.pt')
     results = model.export(format='onnx')
+
 CLI:
     $ yolo mode=export model=yolov8n.pt format=onnx
+
 Inference:
     $ yolo predict model=yolov8n.pt                 # PyTorch
                          yolov8n.torchscript        # TorchScript
@@ -37,6 +42,7 @@ Inference:
                          yolov8n_edgetpu.tflite     # TensorFlow Edge TPU
                          yolov8n_paddle_model       # PaddlePaddle
                          yolov8n_ncnn_model         # NCNN
+
 TensorFlow.js:
     $ cd .. && git clone https://github.com/zldrobit/tfjs-yolov5-example.git && cd tfjs-yolov5-example
     $ npm install
@@ -138,6 +144,7 @@ def try_export(inner_func):
 class Exporter:
     """
     A class for exporting a model.
+
     Attributes:
         args (SimpleNamespace): Configuration for the exporter.
         callbacks (list, optional): List of callback functions. Defaults to None.
@@ -146,6 +153,7 @@ class Exporter:
     def __init__(self, cfg=DEFAULT_CFG, overrides=None, _callbacks=None):
         """
         Initializes the Exporter class.
+
         Args:
             cfg (str, optional): Path to a configuration file. Defaults to DEFAULT_CFG.
             overrides (dict, optional): Configuration overrides. Defaults to None.
