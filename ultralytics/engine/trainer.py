@@ -528,7 +528,7 @@ class BaseTrainer:
                 for k,v in self.args.chiebot_cfg["ag_skip"].items():
                     for i in v:
                         if i in name2clsidx_map:
-                            self.args.chiebot_cache_cfg_ag_skip.setdefault(k)
+                            self.args.chiebot_cache_cfg_ag_skip.setdefault(k,[])
                             self.args.chiebot_cache_cfg_ag_skip[k].append(name2clsidx_map[i])
                         else:
                             LOGGER.warning(f"WARNING ⚠️: the class {i} in {k} is not valid ")
