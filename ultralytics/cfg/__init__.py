@@ -30,7 +30,6 @@ from ultralytics.utils import (
     yaml_print,
 )
 
-
 # Define valid tasks and modes
 MODES = {"train", "val", "predict", "export", "track", "benchmark"}
 TASKS = {"detect", "segment", "classify", "pose", "obb"}
@@ -90,7 +89,6 @@ CLI_HELP_MSG = f"""
         yolo copy-cfg
         yolo cfg
         yolo grpc grpc_config_path
-
     Docs: https://docs.ultralytics.com
     Community: https://community.ultralytics.com
     GitHub: https://github.com/ultralytics/ultralytics
@@ -473,15 +471,17 @@ def entrypoint(debug=""):
         return
 
     special = {
-        'help': lambda: LOGGER.info(CLI_HELP_MSG),
-        'checks': checks.collect_system_info,
-        'version': lambda: LOGGER.info(__version__),
-        'settings': lambda: handle_yolo_settings(args[1:]),
-        'cfg': lambda: yaml_print(DEFAULT_CFG_PATH),
-        'hub': lambda: handle_yolo_hub(args[1:]),
-        'login': lambda: handle_yolo_hub(args),
+        "help": lambda: LOGGER.info(CLI_HELP_MSG),
+        "checks": checks.collect_system_info,
+        "version": lambda: LOGGER.info(__version__),
+        "settings": lambda: handle_yolo_settings(args[1:]),
+        "cfg": lambda: yaml_print(DEFAULT_CFG_PATH),
+        "hub": lambda: handle_yolo_hub(args[1:]),
+        "login": lambda: handle_yolo_hub(args),
+        "copy-cfg": copy_default_cfg,
         "grpc": lambda: handle_grpc(args[1:]),
-        'copy-cfg': copy_default_cfg}
+        "explorer": lambda: handle_explorer(),
+    }
     full_args_dict = {**DEFAULT_CFG_DICT, **{k: None for k in TASKS}, **{k: None for k in MODES}, **special}
 
     # Define common misuses of special commands, i.e. -h, -help, --help
@@ -619,7 +619,6 @@ def handle_grpc(args):
     else:
         LOGGER.error(f"ERROR ⚠️,grpc need a cfg file,{args[0]} not exists")
         return
-
 
 
 if __name__ == "__main__":
