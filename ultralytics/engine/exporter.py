@@ -1,7 +1,6 @@
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 """
 Export a YOLOv8 PyTorch model to other formats. TensorFlow exports authored by https://github.com/zldrobit
-
 Format                  | `format=argument`         | Model
 ---                     | ---                       | ---
 PyTorch                 | -                         | yolov8n.pt
@@ -17,18 +16,14 @@ TensorFlow Edge TPU     | `edgetpu`                 | yolov8n_edgetpu.tflite
 TensorFlow.js           | `tfjs`                    | yolov8n_web_model/
 PaddlePaddle            | `paddle`                  | yolov8n_paddle_model/
 NCNN                    | `ncnn`                    | yolov8n_ncnn_model/
-
 Requirements:
     $ pip install "ultralytics[export]"
-
 Python:
     from ultralytics import YOLO
     model = YOLO('yolov8n.pt')
     results = model.export(format='onnx')
-
 CLI:
     $ yolo mode=export model=yolov8n.pt format=onnx
-
 Inference:
     $ yolo predict model=yolov8n.pt                 # PyTorch
                          yolov8n.torchscript        # TorchScript
@@ -42,7 +37,6 @@ Inference:
                          yolov8n_edgetpu.tflite     # TensorFlow Edge TPU
                          yolov8n_paddle_model       # PaddlePaddle
                          yolov8n_ncnn_model         # NCNN
-
 TensorFlow.js:
     $ cd .. && git clone https://github.com/zldrobit/tfjs-yolov5-example.git && cd tfjs-yolov5-example
     $ npm install
@@ -144,7 +138,6 @@ def try_export(inner_func):
 class Exporter:
     """
     A class for exporting a model.
-
     Attributes:
         args (SimpleNamespace): Configuration for the exporter.
         callbacks (list, optional): List of callback functions. Defaults to None.
@@ -153,7 +146,6 @@ class Exporter:
     def __init__(self, cfg=DEFAULT_CFG, overrides=None, _callbacks=None):
         """
         Initializes the Exporter class.
-
         Args:
             cfg (str, optional): Path to a configuration file. Defaults to DEFAULT_CFG.
             overrides (dict, optional): Configuration overrides. Defaults to None.
@@ -529,16 +521,12 @@ class Exporter:
                 f"or in {ROOT}. See PNNX repo for full installation instructions."
             )
             system = "macos" if MACOS else "windows" if WINDOWS else "linux-aarch64" if ARM64 else "linux"
-
-            # PNNX link fixed at 20240226 due to bug in 20240410
-            # try:
-            #     _, assets = get_github_assets(repo="pnnx/pnnx", retry=True)
-            #     url = [x for x in assets if f"{system}.zip" in x][0]
-            # except Exception as e:
-            #     url = f"https://github.com/pnnx/pnnx/releases/download/20240226/pnnx-20240226-{system}.zip"
-            #     LOGGER.warning(f"{prefix} WARNING ⚠️ PNNX GitHub assets not found: {e}, using default {url}")
-
-            url = f"https://github.com/pnnx/pnnx/releases/download/20240226/pnnx-20240226-{system}.zip"
+            _, assets = get_github_assets(repo="pnnx/pnnx", retry=True)
+            if assets:
+                url = [x for x in assets if f"{system}.zip" in x][0]
+            else:
+                url = f"https://github.com/pnnx/pnnx/releases/download/20240226/pnnx-20240226-{system}.zip"
+                LOGGER.warning(f"{prefix} WARNING ⚠️ PNNX GitHub assets not found, using default {url}")
             asset = attempt_download_asset(url, repo="pnnx/pnnx", release="latest")
             if check_is_path_safe(Path.cwd(), asset):  # avoid path traversal security vulnerability
                 unzip_dir = Path(asset).with_suffix("")
@@ -658,7 +646,6 @@ class Exporter:
     def export_engine(self, prefix=colorstr("TensorRT:")):
         """YOLOv8 TensorRT export https://developer.nvidia.com/tensorrt."""
         assert self.im.device.type != "cpu", "export running on CPU but must be on GPU, i.e. use 'device=0'"
-        self.args.simplify = True
         f_onnx, _ = self.export_onnx()  # run before trt import https://github.com/ultralytics/ultralytics/issues/7016
 
         try:
@@ -667,10 +654,12 @@ class Exporter:
             if LINUX:
                 check_requirements("nvidia-tensorrt", cmds="-U --index-url https://pypi.ngc.nvidia.com")
             import tensorrt as trt  # noqa
+
         check_version(trt.__version__, "7.0.0", hard=True)  # require tensorrt>=7.0.0
 
+        self.args.simplify = True
+
         LOGGER.info(f"\n{prefix} starting export with TensorRT {trt.__version__}...")
-        is_trt10 = int(trt.__version__.split(".")[0]) >= 10  # is TensorRT >= 10
         assert Path(f_onnx).exists(), f"failed to export ONNX file: {f_onnx}"
         f = self.file.with_suffix(".engine")  # TensorRT engine file
         logger = trt.Logger(trt.Logger.INFO)
@@ -679,11 +668,7 @@ class Exporter:
 
         builder = trt.Builder(logger)
         config = builder.create_builder_config()
-        workspace = int(self.args.workspace * (1 << 30))
-        if is_trt10:
-            config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, workspace)
-        else:  # TensorRT versions 7, 8
-            config.max_workspace_size = workspace
+        config.max_workspace_size = int(self.args.workspace * (1 << 30))
         flag = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
         network = builder.create_network(flag)
         parser = trt.OnnxParser(network, logger)
@@ -702,31 +687,27 @@ class Exporter:
             if shape[0] <= 1:
                 LOGGER.warning(f"{prefix} WARNING ⚠️ 'dynamic=True' model requires max batch size, i.e. 'batch=16'")
             profile = builder.create_optimization_profile()
-            min_shape = (1, shape[1], 32, 32)  # minimum input shape
-            opt_shape = (max(1, shape[0] // 2), *shape[1:])  # optimal input shape
-            max_shape = (*shape[:2], *(max(1, self.args.workspace) * d for d in shape[2:]))  # max input shape
             for inp in inputs:
-                profile.set_shape(inp.name, min_shape, opt_shape, max_shape)
+                profile.set_shape(inp.name, (1, *shape[1:]), (max(1, shape[0] // 2), *shape[1:]), shape)
             config.add_optimization_profile(profile)
 
-        half = builder.platform_has_fast_fp16 and self.args.half
-        LOGGER.info(f"{prefix} building FP{16 if half else 32} engine as {f}")
-        if half:
+        LOGGER.info(
+            f"{prefix} building FP{16 if builder.platform_has_fast_fp16 and self.args.half else 32} engine as {f}"
+        )
+        if builder.platform_has_fast_fp16 and self.args.half:
             config.set_flag(trt.BuilderFlag.FP16)
 
-        # Free CUDA memory
         del self.model
         torch.cuda.empty_cache()
 
         # Write file
-        build = builder.build_serialized_network if is_trt10 else builder.build_engine
-        with build(network, config) as engine, open(f, "wb") as t:
+        with builder.build_engine(network, config) as engine, open(f, "wb") as t:
             # Metadata
             meta = json.dumps(self.metadata)
             t.write(len(meta).to_bytes(4, byteorder="little", signed=True))
             t.write(meta.encode())
             # Model
-            t.write(engine if is_trt10 else engine.serialize())
+            t.write(engine.serialize())
 
         return f, None
 
