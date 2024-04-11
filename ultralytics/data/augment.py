@@ -22,7 +22,6 @@ DEFAULT_MEAN = (0.0, 0.0, 0.0)
 DEFAULT_STD = (1.0, 1.0, 1.0)
 DEFAULT_CROP_FRACTION = 1.0
 
-from ultralytics.data.chiebot_augment.origin_ag_ext import skip_class_support
 
 # TODO: we might need a BaseTransform to make all these augments be compatible with both classification and semantic
 class BaseTransform:
@@ -63,7 +62,6 @@ class BaseTransform:
         self.apply_semantic(labels)
 
 
-@skip_class_support
 class Compose:
     """Class for composing multiple image transformations."""
 
@@ -390,7 +388,6 @@ class MixUp(BaseMixTransform):
         return labels
 
 
-@skip_class_support
 class RandomPerspective:
     """
     Implements random perspective and affine transformations on images and corresponding bounding boxes, segments, and
@@ -628,7 +625,6 @@ class RandomPerspective:
         return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + eps) > area_thr) & (ar < ar_thr)  # candidates
 
 
-@skip_class_support
 class RandomHSV:
     """
     This class is responsible for performing random adjustments to the Hue, Saturation, and Value (HSV) channels of an
@@ -672,7 +668,6 @@ class RandomHSV:
         return labels
 
 
-@skip_class_support
 class RandomFlip:
     """
     Applies a random horizontal or vertical flip to an image with a given probability.
@@ -865,7 +860,6 @@ class CopyPaste:
         return labels
 
 
-@skip_class_support
 class Albumentations:
     """
     Albumentations transformations.
@@ -905,20 +899,8 @@ class Albumentations:
 
     def __call__(self, labels):
         """Generates object detections and returns a dictionary with detection results."""
-        """
-        labels = {
-            "im_file":str img_path
-            "cls": Nx1 np.ndarray class labels
-            "img": HxWx3 np.ndarray image
-            "ori_shape": Tuple[int,int] origin hw
-            "resized_shape": Tuple[int,int] resized HW
-            "ratio_pad": Tuple[float,float] ratio of H/h W/w
-            "instances": ultralytics/utils/instance.py:Instances
-        }
-
-        """
-        im = labels['img']
-        cls = labels['cls']
+        im = labels["img"]
+        cls = labels["cls"]
         if len(cls):
             labels["instances"].convert_bbox("xywh")
             labels["instances"].normalize(*im.shape[:2][::-1])
