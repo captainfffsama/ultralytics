@@ -628,6 +628,7 @@ class RandomPerspective:
         return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + eps) > area_thr) & (ar < ar_thr)  # candidates
 
 
+@skip_class_support
 class RandomHSV:
     """
     This class is responsible for performing random adjustments to the Hue, Saturation, and Value (HSV) channels of an
