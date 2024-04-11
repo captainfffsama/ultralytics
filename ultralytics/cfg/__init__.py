@@ -175,6 +175,11 @@ CFG_BOOL_KEYS = {
     "multi_scale",
 }
 
+CFG_LIMIT_CHOICES_KEYS = {
+    "metric_method": {"yolov8","voc"}
+}
+
+
 
 def cfg2dict(cfg):
     """
@@ -262,6 +267,10 @@ def check_cfg(cfg, hard=True):
                         f"'{k}' must be a bool (i.e. '{k}=True' or '{k}=False')"
                     )
                 cfg[k] = bool(v)
+            elif k in CFG_LIMIT_CHOICES_KEYS and v not in CFG_LIMIT_CHOICES_KEYS[k]:
+                if hard:
+                    raise ValueError(f"'{k}={v}' is an invalid value. " f"Valid '{k}' values are {CFG_LIMIT_CHOICES_KEYS[k]}")
+                cfg[k] = v
 
 
 def get_save_dir(args, name=None):

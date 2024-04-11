@@ -1000,6 +1000,7 @@ class DetMetrics(SimpleClass):
         plot (bool): A flag that indicates whether to plot precision-recall curves for each class. Defaults to False.
         on_plot (func): An optional callback to pass plots path and data when they are rendered. Defaults to None.
         names (tuple of str): A tuple of strings that represents the names of the classes. Defaults to an empty tuple.
+        metrics (str): A string that specifies the metrics to use. Defaults to 'yolov8'.
 
     Attributes:
         save_dir (Path): A path to the directory where the output plots will be saved.
@@ -1022,7 +1023,7 @@ class DetMetrics(SimpleClass):
         curves_results: TODO
     """
 
-    def __init__(self, save_dir=Path("."), plot=False, on_plot=None, names=()) -> None:
+    def __init__(self, save_dir=Path("."), plot=False, on_plot=None, names=(),metrics="yolov8") -> None:
         """Initialize a DetMetrics instance with a save directory, plot flag, callback function, and class names."""
         self.save_dir = save_dir
         self.plot = plot
@@ -1030,12 +1031,12 @@ class DetMetrics(SimpleClass):
         self.names = names
         self.box = Metric()
         self.speed = {'preprocess': 0.0, 'inference': 0.0, 'loss': 0.0, 'postprocess': 0.0}
-        self.metrics = 'voc'
+        assert metrics in {'yolov8','voc'}, "metrics选择yolov8或voc"
+        self.metrics = metrics
         self.task = 'detect'
 
     def process(self, tp, conf, pred_cls, target_cls):
         """Process predicted results for object detection and update metrics."""
-        assert self.metrics == 'yolov8' or 'voc', "metrics选择yolov8或voc"
         if self.metrics == 'yolov8':
             results = ap_per_class(tp,
                                 conf,

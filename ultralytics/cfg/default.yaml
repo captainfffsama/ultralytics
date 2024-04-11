@@ -125,6 +125,8 @@ cfg: # (str, optional) for overriding defaults.yaml
 # Tracker settings ------------------------------------------------------------------------------------------------------
 tracker: botsort.yaml # (str) tracker type, choices=[botsort.yaml, bytetrack.yaml]
 
+metric_method: "yolov8" #(str) "voc" or yolov8
+
 
 chiebot_cfg:
   # key is the class name of augment
