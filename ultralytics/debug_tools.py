@@ -176,19 +176,20 @@ def show_img(
     plt.rcParams["figure.constrained_layout.use"] = True
     for idx, img in enumerate(imgss):
         img_t = normalize_tensor(img)
-        img_grid = _split_channel2grid(img_t)
+        img_grid,img_grid_shape = _split_channel2grid(img_t)
         if cvreader:
             img_grid = img_grid[:, :, ::-1]
         if isinstance(axs, np.ndarray):
             if 2 == len(axs.shape):
                 axs[idx % row_n][idx // row_n].imshow(img_grid)
-                axs[idx % row_n][idx // row_n].set_title(str(idx))
+                axs[idx % row_n][idx // row_n].set_title(f"{idx}-shape:{img_grid_shape}")
             else:
+
                 axs[idx % row_n].imshow(img_grid)
-                axs[idx % row_n].set_title(str(idx))
+                axs[idx % row_n].set_title(f"{idx}-shape:{img_grid_shape}")
         else:
             axs.imshow(img_grid)
-            axs.set_title(str(idx))
+            axs.set_title(f"{idx}-shape:{img_grid_shape}")
     if text:
         plt.text(0, 0, text, fontsize=15)
     if delay <= 0:
@@ -202,7 +203,7 @@ def show_img(
 def _split_channel2grid(data: np.ndarray):
     """data should be 3D tensor and CHW"""
     if data.shape[0] in (1, 3):
-        return data.transpose((1, 2, 0))
+        return data.transpose((1, 2, 0)),(1,1)
     else:
         nrow = int(np.sqrt(data.shape[0]))
         n_t = data.shape[0] % nrow
@@ -217,7 +218,7 @@ def _split_channel2grid(data: np.ndarray):
         data = data.transpose((1, 0, 2))  # HCW
         data = data.reshape((data.shape[0], 1, -1))
         data = data.transpose((0, 2, 1))  # HWC
-        return data
+        return data,(nrow, ncol)
 
 
 def show_pos_mask(mask_gt: torch.Tensor, size=640):

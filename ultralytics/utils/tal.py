@@ -321,7 +321,7 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
             )
 
         # all B,max_gt_num,h*w
-        o_mask_pos, align_metric, overlaps, mask_in_gts = self.get_pos_mask(
+        o_mask_pos, align_metric, overlaps, mask_in_gts,not_good_idx = self.get_pos_mask(
             pd_scores, pd_bboxes, gt_labels, gt_bboxes, anc_points, mask_gt
         )
 
@@ -342,21 +342,26 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         # # target_scores (Tensor): shape(bs, num_total_anchors, num_classes)
         # target_scores = target_scores * norm_align_metric
 
-
         # NOTE: if use assigned_target, use this line
-        pos_overlaps = (overlaps * o_mask_pos).amax(
-            dim=-1, keepdim=True
-        )  # b, max_num_obj
-        norm_align_metric=(align_metric * pos_overlaps / (pos_align_metrics + self.eps)).permute(0,2,1)
-        tg_idx=(gt_labels+1).expand(-1,-1,norm_align_metric.shape[1]).permute(0,2,1).long()
+        pos_overlaps = (overlaps * o_mask_pos).amax(dim=-1, keepdim=True)  # b, max_num_obj
+        norm_align_metric = (align_metric * pos_overlaps / (pos_align_metrics + self.eps)).permute(0, 2, 1)
+        tg_idx = (gt_labels + 1).expand(-1, -1, norm_align_metric.shape[1]).permute(0, 2, 1).long()
 
-        tmp= torch.zeros(
-            (target_scores.shape[0],target_scores.shape[1], target_scores.shape[2] + 1),
+        tmp = torch.zeros(
+            (target_scores.shape[0], target_scores.shape[1], target_scores.shape[2] + 1),
             dtype=norm_align_metric.dtype,
             device=target_scores.device,
         )  # (b, h*w, 81)
-        tmp.scatter_(2,tg_idx,norm_align_metric)
-        target_scores=target_scores*tmp[:,:,1:]
+        tmp.scatter_(2, tg_idx, norm_align_metric)
+        target_scores = target_scores * tmp[:, :, 1:]
+
+        # generate not_good_mask
+        not_good_tmp=not_good_idx*(gt_labels+1)
+        #b,hw,m
+        not_good_tmp=not_good_tmp.permute(0, 2, 1).long()
+        not_good_tmp1=torch.zeros(not_good_tmp.shape[0],not_good_tmp.shape[1],self.num_classes+1,dtype=torch.bool,device=not_good_tmp.device)
+        not_good_tmp1.scatter_(2,not_good_tmp,True)
+        _,not_good_mask=not_good_tmp1.split([1,self.num_classes],-1)
 
         return (
             target_labels,
@@ -365,7 +370,8 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
             fg_mask.bool(),
             target_gt_idx,
             o_mask_pos.bool(),
-            ~(mask_in_gts.bool())
+            ~(mask_in_gts.bool()),
+            not_good_mask.bool()
         )
 
     def assigned_target(
@@ -441,11 +447,11 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         # Get anchor_align metric, (b, max_num_obj, h*w)
         align_metric, overlaps = self.get_box_metrics(pd_scores, pd_bboxes, gt_labels, gt_bboxes, mask_in_gts * mask_gt)
         # Get topk_metric mask, (b, max_num_obj, h*w)
-        mask_topk = self.select_auto_topk(align_metric, mask_in_gts, mask_gt.bool())
+        mask_topk,not_good_idx = self.select_auto_topk(align_metric, mask_in_gts, mask_gt.bool())
         # Merge all mask to a final mask, (b, max_num_obj, h*w)
         mask_pos = mask_topk * mask_in_gts * mask_gt
 
-        return mask_pos, align_metric, overlaps, mask_in_gts
+        return mask_pos, align_metric, overlaps, mask_in_gts,not_good_idx
 
     def select_auto_topk(
         self,
@@ -467,6 +473,7 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         Returns:
             (Tensor): A tensor of shape (b, max_num_obj, h*w) containing the selected top-k candidates.
         """
+        sigma_coefficient = 0.5
         # mask_mean
         mask_obj_num = mask_in_gts.sum(-1)  # B, max_num_obj
         if mask_gt is None:
@@ -479,14 +486,20 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         # mask_std
         mask_std = ((metrics - mask_mean.unsqueeze(-1)) ** 2).sum(-1).sqrt()
 
-        thr = mask_mean +1* mask_std
+        l_thr = mask_mean + sigma_coefficient * mask_std
 
-        metrics_idx = metrics > thr[:, :, None]
+        # b,max_num_obj,h*w
+        metrics_idx = metrics >= l_thr[:, :, None]
 
         max_args = torch.argmax(metrics, dim=-1)
         metrics_idx = metrics_idx.scatter(2, max_args[:, :, None], True)
-        metrics_idx = metrics_idx & mask_gt
-        return metrics_idx.to(metrics.dtype)
+        metrics_idx = metrics_idx & mask_gt.bool()
+
+        r_thr = mask_mean - sigma_coefficient * mask_std
+        not_good_idx = (metrics >= r_thr[:, :, None])&(metrics<l_thr[:, :, None])
+        not_good_idx = not_good_idx& ~metrics_idx
+        not_good_idx = not_good_idx & mask_in_gts.bool()
+        return metrics_idx.to(metrics.dtype),not_good_idx.to(metrics.dtype)
 
 
 class RotatedTaskAlignedAssigner(TaskAlignedAssigner):

@@ -6,7 +6,14 @@ import torch.nn.functional as F
 
 from ultralytics.utils.metrics import OKS_SIGMA
 from ultralytics.utils.ops import crop_mask, xywh2xyxy, xyxy2xywh
-from ultralytics.utils.tal import RotatedTaskAlignedAssigner, TaskAlignedAssigner, dist2bbox, dist2rbox, make_anchors,CaptainAlignedAssiger
+from ultralytics.utils.tal import (
+    RotatedTaskAlignedAssigner,
+    TaskAlignedAssigner,
+    dist2bbox,
+    dist2rbox,
+    make_anchors,
+    CaptainAlignedAssiger,
+)
 from ultralytics import debug_tools as D
 from .metrics import bbox_iou, probiou
 from .tal import bbox2dist
@@ -73,8 +80,8 @@ class BboxLoss(nn.Module):
     def forward(self, pred_dist, pred_bboxes, anchor_points, target_bboxes, target_scores, target_scores_sum, fg_mask):
         """IoU loss."""
         # weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
-        weight,_=torch.max(target_scores, dim=-1)
-        weight=weight[fg_mask].unsqueeze(-1)
+        weight, _ = torch.max(target_scores, dim=-1)
+        weight = weight[fg_mask].unsqueeze(-1)
         # FIXME: 这里可能有问题
         iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
         loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
@@ -252,6 +259,7 @@ class v8DetectionLoss:
 
         return loss.sum() * batch_size, loss.detach()  # loss(box, cls, dfl)
 
+
 class v8HQDetectionLoss(v8DetectionLoss):
     def __init__(self, model):  # model must be de-paralleled
         """Initializes v8DetectionLoss with the model, defining model-related properties and BCE loss function."""
@@ -269,7 +277,7 @@ class v8HQDetectionLoss(v8DetectionLoss):
 
         self.use_dfl = m.reg_max > 1
 
-        self.assigner =CaptainAlignedAssiger(topk=10, num_classes=self.nc, alpha=0.5, beta=6.0)
+        self.assigner = CaptainAlignedAssiger(topk=10, num_classes=self.nc, alpha=0.5, beta=6.0)
         self.bbox_loss = BboxLoss(m.reg_max - 1, use_dfl=self.use_dfl).to(device)
         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
 
@@ -301,7 +309,7 @@ class v8HQDetectionLoss(v8DetectionLoss):
         # Pboxes
         pred_bboxes = self.bbox_decode(anchor_points, pred_distri)  # xyxy, (b, h*w, 4)
 
-        _, target_bboxes, target_scores, fg_mask, _,obj_mask,bg_mask= self.assigner(
+        _, target_bboxes, target_scores, fg_mask, _, obj_mask, bg_mask, not_good_mask = self.assigner(
             pred_scores.detach().sigmoid(),
             (pred_bboxes.detach() * stride_tensor).type(gt_bboxes.dtype),
             anchor_points * stride_tensor,
@@ -311,15 +319,17 @@ class v8HQDetectionLoss(v8DetectionLoss):
         )
 
         target_scores_sum = max(target_scores.sum(), 1)
-        bg_mask=~((~bg_mask).sum(1).bool())
-        fgvbg_w=min(bg_mask.sum()/(3*fg_mask.sum()+1),10.0)
+        bg_mask = ~((~bg_mask).sum(1).bool())
+        fgvbg_w = min(bg_mask.sum() / (3 * fg_mask.sum() + 1), 10.0)
 
-        loss_weight=bg_mask+fg_mask
+        loss_weight = bg_mask + fg_mask
 
         # Cls loss
         # loss[1] = self.varifocal_loss(pred_scores, target_scores, target_labels) / target_scores_sum  # VFL way
-        loss_cls=self.bce(pred_scores, target_scores.to(dtype))
-        loss_cls=loss_cls*loss_weight.unsqueeze(-1)
+        target_scores[not_good_mask]=pred_bboxes.detach()[not_good_mask]
+
+        loss_cls = self.bce(pred_scores, target_scores.to(dtype))
+        loss_cls = loss_cls * loss_weight.unsqueeze(-1)
         loss[1] = loss_cls.sum() / target_scores_sum  # BCE
 
         # Bbox loss
@@ -336,6 +346,7 @@ class v8HQDetectionLoss(v8DetectionLoss):
         loss[2] *= self.hyp.dfl  # dfl gain
 
         return loss.sum() * batch_size, loss.detach()  # loss(box, cls, dfl)
+
 
 class v8SegmentationLoss(v8DetectionLoss):
     """Criterion class for computing training losses."""
