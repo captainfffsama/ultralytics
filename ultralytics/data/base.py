@@ -92,6 +92,7 @@ class BaseDataset(Dataset):
                 LOGGER.warning(f"WARNING ⚠️ GPU decoding requires CUDA 11.7 or higher.")
                 self.image_decode_device = "cpu"
             else:
+                # FIXME: mutil gpu decode,cuda will raise error
                 self.image_decode_device = f"cuda:{LOCAL_RANK}"
         self.img_path = img_path
         self.imgsz = imgsz
