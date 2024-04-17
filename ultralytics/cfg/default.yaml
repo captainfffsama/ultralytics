@@ -126,6 +126,7 @@ cfg: # (str, optional) for overriding defaults.yaml
 tracker: botsort.yaml # (str) tracker type, choices=[botsort.yaml, bytetrack.yaml]
 
 metric_method: "yolov8" #(str) "voc" or yolov8
+image_decode_device: "cpu" #(str) "cpu" or "cuda". cuda need cuda>11.6 and image is jpg
 
 
 chiebot_cfg:

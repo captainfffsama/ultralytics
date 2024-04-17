@@ -8,15 +8,28 @@ from copy import deepcopy
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from typing import Optional
+from packaging.version import Version
 
 import cv2
 import numpy as np
 import psutil
+import torch
 from torch.utils.data import Dataset
+import torchvision
 
 from ultralytics.utils import DEFAULT_CFG, LOCAL_RANK, LOGGER, NUM_THREADS, TQDM
 from .utils import FORMATS_HELP_MSG, HELP_URL, IMG_FORMATS
 
+def read_img(path,device="cpu"):
+    if device != "cpu" and os.path.splitext(path)[-1].lower() in ('.jpg',".jpeg"):
+        try:
+            img=torchvision.io.read_file(path)
+            img=torchvision.io.decode_jpeg(img,device=device).cpu().numpy()
+        except Exception as e:
+            img=cv2.imread(path)
+    else:
+        img=cv2.imread(path)
+    return img
 
 class BaseDataset(Dataset):
     """
@@ -64,6 +77,14 @@ class BaseDataset(Dataset):
     ):
         """Initialize BaseDataset with given configuration and options."""
         super().__init__()
+        self.image_decode_device=hyp.get("image_decode_device","cpu")
+        if "cuda"==self.image_decode_device :
+            LOGGER.warning(f"WARNING ⚠️ GPU decoding is enabled. This will be skip exif.")
+            if Version(torch.version.cuda) < Version("11.7"):
+                LOGGER.warning(f"WARNING ⚠️ GPU decoding requires CUDA 11.7 or higher.")
+                self.image_decode_device = "cpu"
+            else:
+                self.image_decode_device = f"cuda:{LOCAL_RANK}"
         self.img_path = img_path
         self.imgsz = imgsz
         self.augment = augment
@@ -151,9 +172,9 @@ class BaseDataset(Dataset):
                 except Exception as e:
                     LOGGER.warning(f"{self.prefix}WARNING ⚠️ Removing corrupt *.npy image file {fn} due to: {e}")
                     Path(fn).unlink(missing_ok=True)
-                    im = cv2.imread(f)  # BGR
+                    im = read_img(f,self.image_decode_device)  # BGR
             else:  # read image
-                im = cv2.imread(f)  # BGR
+                im =  read_img(f,self.image_decode_device)  # BGR
             if im is None:
                 raise FileNotFoundError(f"Image Not Found {f}")
 
@@ -199,14 +220,14 @@ class BaseDataset(Dataset):
         """Saves an image as an *.npy file for faster loading."""
         f = self.npy_files[i]
         if not f.exists():
-            np.save(f.as_posix(), cv2.imread(self.im_files[i]), allow_pickle=False)
+            np.save(f.as_posix(), read_img(self.im_files[i],self.image_decode_device), allow_pickle=False)
 
     def check_cache_ram(self, safety_margin=0.5):
         """Check image caching requirements vs available memory."""
         b, gb = 0, 1 << 30  # bytes of cached images, bytes per gigabytes
         n = min(self.ni, 30)  # extrapolate from 30 random images
         for _ in range(n):
-            im = cv2.imread(random.choice(self.im_files))  # sample image
+            im = read_img(random.choice(self.im_files),self.image_decode_device)  # sample image
             ratio = self.imgsz / max(im.shape[0], im.shape[1])  # max(h, w)  # ratio
             b += im.nbytes * ratio**2
         mem_required = b * self.ni / n * (1 + safety_margin)  # GB required to cache dataset into RAM
