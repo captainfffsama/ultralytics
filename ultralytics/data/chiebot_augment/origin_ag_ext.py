@@ -31,7 +31,7 @@ def skip_class_support(cls):
         hyper_params: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
-        self.__class__.__init__original__(self, *args, **kwargs)
+        self.__class__.__init_original__(self, *args, **kwargs)
         setting_cache_ag_skip = {}
         setting_cache_n2i = {}
         if hyper_params is not None:
