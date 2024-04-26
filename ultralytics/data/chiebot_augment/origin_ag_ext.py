@@ -21,17 +21,17 @@ import albumentations.augmentations.crops.functional as ACF
 def skip_class_support(cls):
     """transform support skip some class now"""
 
-    original_init = cls.__init__
+    cls.__init_original__= cls.__init__
 
-    @wraps(original_init)
-    def __init__(
+    @wraps(cls.__init_original__)
+    def _init_fix(
         self,
         *args,
         skip_class_idx: Optional[Tuple[Union[int, str]]] = tuple(),
         hyper_params: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
-        original_init(self, *args, **kwargs)
+        self.__class__.__init__original__(self, *args, **kwargs)
         setting_cache_ag_skip = {}
         setting_cache_n2i = {}
         if hyper_params is not None:
@@ -65,11 +65,11 @@ def skip_class_support(cls):
                 LOGGER.info(f"INFO💡:{self.__class__.__name__}({ppargs},{ppkwargs}) will skip class :{pps}")
 
 
-    cls.__init__ = __init__
+    cls.__init__ = _init_fix
 
-    original_call = cls.__call__
+    cls.__call_original__ = cls.__call__
 
-    def __call__(self, data):
+    def _call_fix(self, data):
         """
         labels = {
             "im_file":str img_path
@@ -88,9 +88,9 @@ def skip_class_support(cls):
         if skip_idx.any():
             return data
         else:
-            return original_call(self, data)
+            return self.__class__.__call_original__(self, data)
 
-    cls.__call__ = __call__
+    cls.__call__ = _call_fix
     return cls
 
 
