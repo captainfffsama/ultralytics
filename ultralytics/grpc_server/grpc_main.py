@@ -3,7 +3,7 @@
 @Author: captainfffsama
 @Date: 2023-08-18 16:28:47
 @LastEditors: captainfffsama tuanzhangsama@outlook.com
-@LastEditTime: 2023-08-18 19:35:13
+@LastEditTime: 2024-04-26 14:54:36
 @FilePath: /ultralytics/ultralytics/grpc_server/grpc_main.py
 @Description:
 '''
@@ -44,7 +44,7 @@ async def main(cfg_path):
     server.add_insecure_port("{}:{}".format(grpc_args['host'],
                                             grpc_args['port']))
     await server.start()
-    print('yolo gprc server init done')
+    print('yolo grpc server init done')
     await server.wait_for_termination()
 
 def run_grpc(cfg_path):
