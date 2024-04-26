@@ -8,10 +8,53 @@ from typing import Optional, Union, Dict, List, TypeVar, Tuple
 import math
 from copy import deepcopy
 import logging
+import time
+from contextlib import contextmanager
+from functools import wraps
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+
+def timethis(func):
+    r'''装饰器用于测试函数时间,需要
+        import time
+        from functools import wraps
+
+    Examples
+    ----------
+        @timethis
+        def my_func():
+            ....
+    '''
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        r = func(*args, **kwargs)
+        end = time.perf_counter()
+        time_spend=end-start
+        if time_spend >1.0:
+            print('\033[1;34m{}.{} : {}\033[0m'.format(func.__module__, func.__name__, end - start))
+        return r
+    return wrapper
+
+@contextmanager
+def timeblock(label:str = '\033[1;34mSpend time:\033[0m',condition=True):
+    r'''上下文管理测试代码块运行时间,需要
+        import time
+        from contextlib import contextmanager
+    '''
+    if condition:
+        start = time.perf_counter()
+        try:
+            yield
+        finally:
+            end = time.perf_counter()
+            time_spend=end-start
+            if time_spend >10.0:
+                print('\033[1;34m{} : {}\033[0m'.format(label, time_spend))
+    else:
+        yield
 
 logging.getLogger("PIL").setLevel(logging.WARNING)
 Tensor = TypeVar("Tensor", np.ndarray, torch.Tensor)

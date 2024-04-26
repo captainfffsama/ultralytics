@@ -10,6 +10,9 @@
 import base64
 from collections import defaultdict
 from typing import Union, Tuple
+
+import numpy as np
+import cv2
 import torch
 from torch import nn
 import datetime
@@ -20,8 +23,6 @@ from ..engine.results import Results
 from ultralytics.nn.modules import SPPF, SPP
 from ultralytics.utils import LOGGER
 from ultralytics import __version__ as u_version
-import numpy as np
-import cv2
 
 from .proto import dldetection_pb2
 from .proto import dldetection_pb2_grpc as dld_pb2_grpc
