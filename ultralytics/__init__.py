@@ -9,6 +9,7 @@ from ultralytics.models.nas import NAS
 from ultralytics.utils import ASSETS, SETTINGS
 from ultralytics.utils.checks import check_yolo as checks
 from ultralytics.utils.downloads import download
+from ultralytics import grpc_server
 
 settings = SETTINGS
 __all__ = (
@@ -24,4 +25,5 @@ __all__ = (
     "download",
     "settings",
     "Explorer",
+    "grpc_server",
 )
