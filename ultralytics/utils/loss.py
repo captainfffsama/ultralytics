@@ -331,7 +331,7 @@ class v8HQDetectionLoss(v8DetectionLoss):
         # pred_scores[not_good_mask]=0.5
 
         loss_cls = self.bce(pred_scores, target_scores.to(dtype))
-        loss_cls = loss_cls * loss_weight.unsqueeze(-1)
+        # loss_cls = loss_cls * loss_weight.unsqueeze(-1)
         loss[1] = loss_cls.sum() / target_scores_sum  # BCE
 
         # Bbox loss

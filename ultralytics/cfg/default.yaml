@@ -127,7 +127,7 @@ tracker: botsort.yaml # (str) tracker type, choices=[botsort.yaml, bytetrack.yam
 
 metric_method: "yolov8" #(str) "voc" or yolov8
 image_decode_device: "cpu" #(str) "cpu" or "cuda". cuda need cuda>11.6 and image is jpg
-
+cache_compress: False
 
 chiebot_cfg:
   # key is the class name of augment

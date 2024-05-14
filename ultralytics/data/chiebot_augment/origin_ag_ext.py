@@ -23,7 +23,7 @@ def skip_class_support(cls):
 
     cls.__init_original__= cls.__init__
 
-    @wraps(cls.__init_original__)
+    # @wraps(cls.__init_original__)
     def _init_fix(
         self,
         *args,
@@ -31,7 +31,7 @@ def skip_class_support(cls):
         hyper_params: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
-        self.__class__.__init__original__(self, *args, **kwargs)
+        self.__init_original__(*args, **kwargs)
         setting_cache_ag_skip = {}
         setting_cache_n2i = {}
         if hyper_params is not None:
@@ -88,7 +88,7 @@ def skip_class_support(cls):
         if skip_idx.any():
             return data
         else:
-            return self.__class__.__call_original__(self, data)
+            return self.__call_original__(data)
 
     cls.__call__ = _call_fix
     return cls

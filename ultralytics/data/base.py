@@ -119,6 +119,10 @@ class BaseDataset(Dataset):
         # Cache images (options are cache = True, False, None, "ram", "disk")
         self.ims, self.im_hw0, self.im_hw = [None] * self.ni, [None] * self.ni, [None] * self.ni
         self.npy_files = [Path(f).with_suffix(".npy") for f in self.im_files]
+
+        self.cache_compress = hyp.get("cache_compress", False)
+        self.npy_img_origin_hw = [None] * self.ni
+
         self.cache = cache.lower() if isinstance(cache, str) else "ram" if cache is True else None
         if (self.cache == "ram" and self.check_cache_ram()) or self.cache == "disk":
             self.cache_images()
@@ -188,11 +192,17 @@ class BaseDataset(Dataset):
                 raise FileNotFoundError(f"Image Not Found {f}")
 
             h0, w0 = im.shape[:2]  # orig hw
+            if self.cache_compress and fn.exists():
+                if self.npy_img_origin_hw[i] is not None:
+                    h0, w0 = self.npy_img_origin_hw[i]
+                else:
+                    LOGGER.warning(f"{self.prefix}WARNING ⚠️ {fn} shape is not in cache!")
             if rect_mode:  # resize long side to imgsz while maintaining aspect ratio
-                r = self.imgsz / max(h0, w0)  # ratio
-                if r != 1:  # if sizes are not equal
-                    w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
-                    im = cv2.resize(im, (w, h), interpolation=cv2.INTER_LINEAR)
+                if not (self.cache_compress and fn.exists()):
+                    r = self.imgsz / max(h0, w0)  # ratio
+                    if r != 1:  # if sizes are not equal
+                        w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
+                        im = cv2.resize(im, (w, h), interpolation=cv2.INTER_LINEAR)
             elif not (h0 == w0 == self.imgsz):  # resize by stretching image to square imgsz
                 im = cv2.resize(im, (self.imgsz, self.imgsz), interpolation=cv2.INTER_LINEAR)
 
@@ -228,8 +238,18 @@ class BaseDataset(Dataset):
     def cache_images_to_disk(self, i):
         """Saves an image as an *.npy file for faster loading."""
         f = self.npy_files[i]
+        img = read_img(self.im_files[i], self.image_decode_device)
+        h0, w0 = img.shape[:2]
+        self.npy_img_origin_hw[i] = (h0, w0)
+
+        if self.cache_compress:
+            r = self.imgsz / max(h0, w0)  # ratio
+            if r != 1:  # if sizes are not equal
+                w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
+                img = cv2.resize(img, (w, h), interpolation=cv2.INTER_LINEAR)
+
         if not f.exists():
-            np.save(f.as_posix(), read_img(self.im_files[i], self.image_decode_device), allow_pickle=False)
+            np.save(f.as_posix(), img, allow_pickle=False)
 
     def check_cache_ram(self, safety_margin=0.5):
         """Check image caching requirements vs available memory."""
