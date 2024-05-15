@@ -20,6 +20,8 @@ import torchvision
 from ultralytics.utils import DEFAULT_CFG, LOCAL_RANK, LOGGER, NUM_THREADS, TQDM
 from .utils import FORMATS_HELP_MSG, HELP_URL, IMG_FORMATS
 
+from ultralytics.debug_tools import timeblock,timethis
+
 
 def read_img(path, device="cpu"):
     if device != "cpu" and os.path.splitext(path)[-1].lower() in (".jpg", ".jpeg"):
@@ -238,17 +240,17 @@ class BaseDataset(Dataset):
     def cache_images_to_disk(self, i):
         """Saves an image as an *.npy file for faster loading."""
         f = self.npy_files[i]
-        img = read_img(self.im_files[i], self.image_decode_device)
-        h0, w0 = img.shape[:2]
-        self.npy_img_origin_hw[i] = (h0, w0)
-
-        if self.cache_compress:
-            r = self.imgsz / max(h0, w0)  # ratio
-            if r != 1:  # if sizes are not equal
-                w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
-                img = cv2.resize(img, (w, h), interpolation=cv2.INTER_LINEAR)
 
         if not f.exists():
+            img = read_img(self.im_files[i], self.image_decode_device)
+            h0, w0 = img.shape[:2]
+            self.npy_img_origin_hw[i] = (h0, w0)
+
+            if self.cache_compress:
+                r = self.imgsz / max(h0, w0)  # ratio
+                if r != 1:  # if sizes are not equal
+                    w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
+                    img = cv2.resize(img, (w, h), interpolation=cv2.INTER_LINEAR)
             np.save(f.as_posix(), img, allow_pickle=False)
 
     def check_cache_ram(self, safety_margin=0.5):
@@ -298,20 +300,30 @@ class BaseDataset(Dataset):
 
     def __getitem__(self, index):
         """Returns transformed label information for given index."""
-        return self.transforms(self.get_image_and_label(index))
+        with timeblock("get image and label spend time:"):
+            iandl=self.get_image_and_label(index)
+        with timeblock("transforms spend time:"):
+            r=self.transforms(iandl)
+        # return self.transforms(self.get_image_and_label(index))
+        return r
 
     def get_image_and_label(self, index):
         """Get and return label information from the dataset."""
-        label = deepcopy(self.labels[index])  # requires deepcopy() https://github.com/ultralytics/ultralytics/pull/1948
-        label.pop("shape", None)  # shape is for rect, remove it
-        label["img"], label["ori_shape"], label["resized_shape"] = self.load_image(index)
-        label["ratio_pad"] = (
-            label["resized_shape"][0] / label["ori_shape"][0],
-            label["resized_shape"][1] / label["ori_shape"][1],
-        )  # for evaluation
-        if self.rect:
-            label["rect_shape"] = self.batch_shapes[self.batch[index]]
-        return self.update_labels_info(label)
+        with timeblock("get label:"):
+            label = deepcopy(self.labels[index])  # requires deepcopy() https://github.com/ultralytics/ultralytics/pull/1948
+            label.pop("shape", None)  # shape is for rect, remove it
+        with timeblock("load image:"):
+            label["img"], label["ori_shape"], label["resized_shape"] = self.load_image(index)
+        with timeblock("update label other:"):
+            label["ratio_pad"] = (
+                label["resized_shape"][0] / label["ori_shape"][0],
+                label["resized_shape"][1] / label["ori_shape"][1],
+            )  # for evaluation
+            if self.rect:
+                label["rect_shape"] = self.batch_shapes[self.batch[index]]
+            r=self.update_labels_info(label)
+        # return self.update_labels_info(label)
+        return r
 
     def __len__(self):
         """Returns the length of the labels list for the dataset."""

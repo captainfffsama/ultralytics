@@ -628,7 +628,7 @@ class RandomPerspective:
         return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + eps) > area_thr) & (ar < ar_thr)  # candidates
 
 
-@skip_class_support
+# @skip_class_support
 class RandomHSV:
     """
     This class is responsible for performing random adjustments to the Hue, Saturation, and Value (HSV) channels of an
@@ -672,7 +672,7 @@ class RandomHSV:
         return labels
 
 
-@skip_class_support
+# @skip_class_support
 class RandomRotate90:
 
     def __init__(self, p=0.2) -> None:
@@ -716,7 +716,7 @@ class RandomRotate90:
         return labels
 
 
-@skip_class_support
+# @skip_class_support
 class RandomFlip:
     """
     Applies a random horizontal or vertical flip to an image with a given probability.
@@ -1175,10 +1175,10 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
             pre_transform,
             MixUp(dataset, pre_transform=pre_transform, p=hyp.mixup),
             Albumentations(p=1.0),
-            RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v,hyper_params=hyp),
+            RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v),
             # RandomRotate90(p=0.2,hyper_params=hyp),
-            RandomFlip(direction='vertical', p=hyp.flipud,hyper_params=hyp),
-            RandomFlip(direction='horizontal', p=hyp.fliplr, flip_idx=flip_idx,hyper_params=hyp)  # transforms
+            RandomFlip(direction='vertical', p=hyp.flipud),
+            RandomFlip(direction='horizontal', p=hyp.fliplr, flip_idx=flip_idx)  # transforms
         ]
     )  # transforms
 

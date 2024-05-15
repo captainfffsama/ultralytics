@@ -50,6 +50,7 @@ from ultralytics.utils.torch_utils import (
     select_device,
     strip_optimizer,
 )
+from ultralytics.debug_tools import timeblock
 
 
 class BaseTrainer:
@@ -310,105 +311,115 @@ class BaseTrainer:
 
     def _do_train(self, world_size=1):
         """Train completed, evaluate and plot if specified by arguments."""
-        if world_size > 1:
-            self._setup_ddp(world_size)
-        self._setup_train(world_size)
+        with timeblock("train setup:",RANK in {-1 ,0}):
+            if world_size > 1:
+                self._setup_ddp(world_size)
+            self._setup_train(world_size)
 
-        nb = len(self.train_loader)  # number of batches
-        nw = max(round(self.args.warmup_epochs * nb), 100) if self.args.warmup_epochs > 0 else -1  # warmup iterations
-        last_opt_step = -1
-        self.epoch_time = None
-        self.epoch_time_start = time.time()
-        self.train_time_start = time.time()
-        self.run_callbacks("on_train_start")
-        LOGGER.info(
-            f'Image sizes {self.args.imgsz} train, {self.args.imgsz} val\n'
-            f'Using {self.train_loader.num_workers * (world_size or 1)} dataloader workers\n'
-            f"Logging results to {colorstr('bold', self.save_dir)}\n"
-            f'Starting training for ' + (f"{self.args.time} hours..." if self.args.time else f"{self.epochs} epochs...")
-        )
-        if self.args.close_mosaic:
-            base_idx = (self.epochs - self.args.close_mosaic) * nb
-            self.plot_idx.extend([base_idx, base_idx + 1, base_idx + 2])
-        epoch = self.start_epoch
+            nb = len(self.train_loader)  # number of batches
+            nw = max(round(self.args.warmup_epochs * nb), 100) if self.args.warmup_epochs > 0 else -1  # warmup iterations
+            last_opt_step = -1
+            self.epoch_time = None
+            self.epoch_time_start = time.time()
+            self.train_time_start = time.time()
+            self.run_callbacks("on_train_start")
+            LOGGER.info(
+                f'Image sizes {self.args.imgsz} train, {self.args.imgsz} val\n'
+                f'Using {self.train_loader.num_workers * (world_size or 1)} dataloader workers\n'
+                f"Logging results to {colorstr('bold', self.save_dir)}\n"
+                f'Starting training for ' + (f"{self.args.time} hours..." if self.args.time else f"{self.epochs} epochs...")
+            )
+            if self.args.close_mosaic:
+                base_idx = (self.epochs - self.args.close_mosaic) * nb
+                self.plot_idx.extend([base_idx, base_idx + 1, base_idx + 2])
+            epoch = self.start_epoch
         while True:
-            self.epoch = epoch
-            self.run_callbacks("on_train_epoch_start")
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")  # suppress 'Detected lr_scheduler.step() before optimizer.step()'
-                self.scheduler.step()
+            with timeblock("train epoch start spend time:",RANK in {-1,0}):
+                self.epoch = epoch
+                self.run_callbacks("on_train_epoch_start")
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")  # suppress 'Detected lr_scheduler.step() before optimizer.step()'
+                    self.scheduler.step()
 
-            self.model.train()
-            if RANK != -1:
-                self.train_loader.sampler.set_epoch(epoch)
-            pbar = enumerate(self.train_loader)
-            # Update dataloader attributes (optional)
-            if epoch == (self.epochs - self.args.close_mosaic):
-                self._close_dataloader_mosaic()
-                self.train_loader.reset()
+                self.model.train()
+                if RANK != -1:
+                    self.train_loader.sampler.set_epoch(epoch)
+                pbar = enumerate(self.train_loader)
+                # Update dataloader attributes (optional)
+                if epoch == (self.epochs - self.args.close_mosaic):
+                    self._close_dataloader_mosaic()
+                    self.train_loader.reset()
 
-            if RANK in {-1, 0}:
-                LOGGER.info(self.progress_string())
-                pbar = TQDM(enumerate(self.train_loader), total=nb)
-            self.tloss = None
-            self.optimizer.zero_grad()
-            for i, batch in pbar:
-                self.run_callbacks("on_train_batch_start")
-                # Warmup
-                ni = i + nb * epoch
-                if ni <= nw:
-                    xi = [0, nw]  # x interp
-                    self.accumulate = max(1, int(np.interp(ni, xi, [1, self.args.nbs / self.batch_size]).round()))
-                    for j, x in enumerate(self.optimizer.param_groups):
-                        # Bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
-                        x["lr"] = np.interp(
-                            ni, xi, [self.args.warmup_bias_lr if j == 0 else 0.0, x["initial_lr"] * self.lf(epoch)]
-                        )
-                        if "momentum" in x:
-                            x["momentum"] = np.interp(ni, xi, [self.args.warmup_momentum, self.args.momentum])
-
-                # Forward
-                with torch.cuda.amp.autocast(self.amp):
-                    batch = self.preprocess_batch(batch)
-                    self.loss, self.loss_items = self.model(batch)
-                    if RANK != -1:
-                        self.loss *= world_size
-                    self.tloss = (
-                        (self.tloss * i + self.loss_items) / (i + 1) if self.tloss is not None else self.loss_items
-                    )
-
-                # Backward
-                self.scaler.scale(self.loss).backward()
-
-                # Optimize - https://pytorch.org/docs/master/notes/amp_examples.html
-                if ni - last_opt_step >= self.accumulate:
-                    self.optimizer_step()
-                    last_opt_step = ni
-
-                    # Timed stopping
-                    if self.args.time:
-                        self.stop = (time.time() - self.train_time_start) > (self.args.time * 3600)
-                        if RANK != -1:  # if DDP training
-                            broadcast_list = [self.stop if RANK == 0 else None]
-                            dist.broadcast_object_list(broadcast_list, 0)  # broadcast 'stop' to all ranks
-                            self.stop = broadcast_list[0]
-                        if self.stop:  # training time exceeded
-                            break
-
-                # Log
-                mem = f"{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G"  # (GB)
-                loss_len = self.tloss.shape[0] if len(self.tloss.shape) else 1
-                losses = self.tloss if loss_len > 1 else torch.unsqueeze(self.tloss, 0)
                 if RANK in {-1, 0}:
-                    pbar.set_description(
-                        ("%11s" * 2 + "%11.4g" * (2 + loss_len))
-                        % (f"{epoch + 1}/{self.epochs}", mem, *losses, batch["cls"].shape[0], batch["img"].shape[-1])
-                    )
-                    self.run_callbacks("on_batch_end")
-                    if self.args.plots and ni in self.plot_idx:
-                        self.plot_training_samples(batch, ni)
+                    LOGGER.info(self.progress_string())
+                    pbar = TQDM(enumerate(self.train_loader), total=nb)
+                self.tloss = None
+                self.optimizer.zero_grad()
+            for i, batch in pbar:
+                with timeblock("train batch spend time:",RANK in {-1,0}):
+                    with timeblock("warm up:",RANK in {-1,0}):
+                        self.run_callbacks("on_train_batch_start")
+                        # Warmup
+                        ni = i + nb * epoch
+                        if ni <= nw:
+                            xi = [0, nw]  # x interp
+                            self.accumulate = max(1, int(np.interp(ni, xi, [1, self.args.nbs / self.batch_size]).round()))
+                            for j, x in enumerate(self.optimizer.param_groups):
+                                # Bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
+                                x["lr"] = np.interp(
+                                    ni, xi, [self.args.warmup_bias_lr if j == 0 else 0.0, x["initial_lr"] * self.lf(epoch)]
+                                )
+                                if "momentum" in x:
+                                    x["momentum"] = np.interp(ni, xi, [self.args.warmup_momentum, self.args.momentum])
 
-                self.run_callbacks("on_train_batch_end")
+                    # Forward
+                    with torch.cuda.amp.autocast(self.amp):
+                        with timeblock("preprocess batch:",RANK in {-1,0}):
+                            batch = self.preprocess_batch(batch)
+                        with timeblock("get loss:",RANK in {-1,0}):
+                            self.loss, self.loss_items = self.model(batch)
+                        if RANK != -1:
+                            self.loss *= world_size
+                        self.tloss = (
+                            (self.tloss * i + self.loss_items) / (i + 1) if self.tloss is not None else self.loss_items
+                        )
+
+                    # Backward
+                    with timeblock("backward:",RANK in {-1,0}):
+                        self.scaler.scale(self.loss).backward()
+
+                    with timeblock("optimize:",RANK in {-1,0}):
+                        # Optimize - https://pytorch.org/docs/master/notes/amp_examples.html
+                        if ni - last_opt_step >= self.accumulate:
+                            self.optimizer_step()
+                            last_opt_step = ni
+
+                            # Timed stopping
+                            if self.args.time:
+                                self.stop = (time.time() - self.train_time_start) > (self.args.time * 3600)
+                                if RANK != -1:  # if DDP training
+                                    broadcast_list = [self.stop if RANK == 0 else None]
+                                    dist.broadcast_object_list(broadcast_list, 0)  # broadcast 'stop' to all ranks
+                                    self.stop = broadcast_list[0]
+                                if self.stop:  # training time exceeded
+                                    break
+
+                    with timeblock("log:",RANK in {-1,0}):
+                        # Log
+                        mem = f"{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G"  # (GB)
+                        loss_len = self.tloss.shape[0] if len(self.tloss.shape) else 1
+                        losses = self.tloss if loss_len > 1 else torch.unsqueeze(self.tloss, 0)
+                        if RANK in {-1, 0}:
+                            pbar.set_description(
+                                ("%11s" * 2 + "%11.4g" * (2 + loss_len))
+                                % (f"{epoch + 1}/{self.epochs}", mem, *losses, batch["cls"].shape[0], batch["img"].shape[-1])
+                            )
+                            self.run_callbacks("on_batch_end")
+                            if self.args.plots and ni in self.plot_idx:
+                                self.plot_training_samples(batch, ni)
+
+                    with timeblock("batch_end:",RANK in {-1,0}):
+                        self.run_callbacks("on_train_batch_end")
 
             self.lr = {f"lr/pg{ir}": x["lr"] for ir, x in enumerate(self.optimizer.param_groups)}  # for loggers
             self.run_callbacks("on_train_epoch_end")

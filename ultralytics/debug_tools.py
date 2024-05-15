@@ -175,6 +175,7 @@ def show_img(
     text: Optional[str] = None,
     cvreader: bool = True,
     delay: float = 0,
+    save_path: Optional[str] = None,
 ):
     r"""使用matplotlib阻塞显示张量,列表传入的图片或者是4D的张量会被拆分到不同的子图中显示
 
@@ -238,9 +239,12 @@ def show_img(
     if delay <= 0:
         plt.show()
     else:
-        plt.draw()
-        plt.pause(delay)
-        plt.close()
+        if save_path:
+            plt.savefig(save_path,dpi=300)
+        else:
+            plt.draw()
+            plt.pause(delay)
+            plt.close()
 
 
 def _split_channel2grid(data: np.ndarray):

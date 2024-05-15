@@ -40,6 +40,8 @@ from .utils import (
 # Ultralytics dataset *.cache version, >= 1.0.0 for YOLOv8
 DATASET_CACHE_VERSION = "1.0.3"
 
+from ultralytics.debug_tools import timethis
+
 
 class YOLODataset(BaseDataset):
     """
@@ -229,6 +231,7 @@ class YOLODataset(BaseDataset):
         return label
 
     @staticmethod
+    @timethis
     def collate_fn(batch):
         """Collates data samples into batches."""
         new_batch = {}
