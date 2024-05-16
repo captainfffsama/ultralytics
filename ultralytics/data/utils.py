@@ -670,7 +670,7 @@ def save_dataset_cache_file(prefix, path, x, version):
         if path.exists():
             path.unlink()  # remove *.cache file if exists
         np.save(str(path), x)  # save cache for next time
-        path.with_suffix(".cache.npy").rename(path)  # remove .npy suffix
+        path.with_suffix(f"{path.suffix}.npy").rename(path)  # remove .npy suffix
         LOGGER.info(f"{prefix}New cache created: {path}")
     else:
         LOGGER.warning(f"{prefix}WARNING ⚠️ Cache directory {path.parent} is not writeable, cache not saved.")

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 from packaging.version import Version
 
+
 import cv2
 import numpy as np
 import psutil
@@ -18,9 +19,16 @@ from torch.utils.data import Dataset
 import torchvision
 
 from ultralytics.utils import DEFAULT_CFG, LOCAL_RANK, LOGGER, NUM_THREADS, TQDM
-from .utils import FORMATS_HELP_MSG, HELP_URL, IMG_FORMATS
+from .utils import FORMATS_HELP_MSG, HELP_URL, IMG_FORMATS, load_dataset_cache_file, save_dataset_cache_file, get_hash
 
-from ultralytics.debug_tools import timeblock,timethis
+from ultralytics.debug_tools import timeblock, timethis
+
+
+def remove_file(file):
+    file = Path(file)
+    if file.exists():
+        os.remove(file)
+    return file
 
 
 def read_img(path, device="cpu"):
@@ -89,9 +97,9 @@ class BaseDataset(Dataset):
         super().__init__()
         self.image_decode_device = hyp.get("image_decode_device", "cpu")
         if "cuda" == self.image_decode_device:
-            LOGGER.warning(f"WARNING ⚠️ GPU decoding is enabled. This will be skip exif.")
+            LOGGER.warning("WARNING ⚠️ GPU decoding is enabled. This will be skip exif.")
             if Version(torch.version.cuda) < Version("11.7"):
-                LOGGER.warning(f"WARNING ⚠️ GPU decoding requires CUDA 11.7 or higher.")
+                LOGGER.warning("WARNING ⚠️ GPU decoding requires CUDA 11.7 or higher.")
                 self.image_decode_device = "cpu"
             else:
                 # FIXME: mutil gpu decode,cuda will raise error
@@ -124,6 +132,7 @@ class BaseDataset(Dataset):
 
         self.cache_compress = hyp.get("cache_compress", False)
         self.npy_img_origin_hw = [None] * self.ni
+        self.shape_cache_path = Path(self.im_files[0]).parent.with_suffix(".shapecache")
 
         self.cache = cache.lower() if isinstance(cache, str) else "ram" if cache is True else None
         if (self.cache == "ram" and self.check_cache_ram()) or self.cache == "disk":
@@ -131,6 +140,16 @@ class BaseDataset(Dataset):
 
         # Transforms
         self.transforms = self.build_transforms(hyp=hyp)
+
+    def clean_npy(self):
+        LOGGER.info("️💡 npy file is invalid! start clean.")
+        with ThreadPool(NUM_THREADS) as pool:
+            results = pool.imap(remove_file, self.npy_files)
+            pbar = TQDM(enumerate(results), total=self.ni, disable=LOCAL_RANK > 0)
+            for i, x in pbar:
+                pbar.desc = f"{self.prefix}Clean npy:({i}/{self.ni})"
+            pbar.close()
+        remove_file(self.shape_cache_path)
 
     def get_img_files(self, img_path):
         """Read image files."""
@@ -181,7 +200,7 @@ class BaseDataset(Dataset):
         """Loads 1 image from dataset index 'i', returns (im, resized hw)."""
         im, f, fn = self.ims[i], self.im_files[i], self.npy_files[i]
         if im is None:  # not cached in RAM
-            if fn.exists():  # load npy
+            if fn.exists() and "disk"==self.cache:  # load npy
                 try:
                     im = np.load(fn)
                 except Exception as e:
@@ -194,13 +213,13 @@ class BaseDataset(Dataset):
                 raise FileNotFoundError(f"Image Not Found {f}")
 
             h0, w0 = im.shape[:2]  # orig hw
-            if self.cache_compress and fn.exists():
+            if self.cache_compress and fn.exists() and "disk"==self.cache:
                 if self.npy_img_origin_hw[i] is not None:
                     h0, w0 = self.npy_img_origin_hw[i]
                 else:
                     LOGGER.warning(f"{self.prefix}WARNING ⚠️ {fn} shape is not in cache!")
             if rect_mode:  # resize long side to imgsz while maintaining aspect ratio
-                if not (self.cache_compress and fn.exists()):
+                if not (self.cache_compress and self.imgsz == max(h0, w0)):
                     r = self.imgsz / max(h0, w0)  # ratio
                     if r != 1:  # if sizes are not equal
                         w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
@@ -225,17 +244,40 @@ class BaseDataset(Dataset):
         """Cache images to memory or disk."""
         b, gb = 0, 1 << 30  # bytes of cached images, bytes per gigabytes
         fcn, storage = (self.cache_images_to_disk, "Disk") if self.cache == "disk" else (self.load_image, "RAM")
+
+        if not (self.cache_compress == self.shape_cache_path.exists()) and "disk" == self.cache:
+            self.clean_npy()
+        all_imgs_origin_hw = {}
+        if "disk" == self.cache and self.cache_compress:
+            if self.shape_cache_path.exists():
+                all_imgs_origin_hw = load_dataset_cache_file(self.shape_cache_path)
+                if all_imgs_origin_hw.get("hash", None) != get_hash(self.im_files):
+                    self.clean_npy()
+                    all_imgs_origin_hw = {}
+
+        origin_hw_pickle_update = False
         with ThreadPool(NUM_THREADS) as pool:
             results = pool.imap(fcn, range(self.ni))
             pbar = TQDM(enumerate(results), total=self.ni, disable=LOCAL_RANK > 0)
             for i, x in pbar:
                 if self.cache == "disk":
                     b += self.npy_files[i].stat().st_size
+                    if self.cache_compress:
+                        if self.npy_img_origin_hw[i] is not None:
+                            all_imgs_origin_hw[self.npy_files[i]] = self.npy_img_origin_hw[i]
+                            origin_hw_pickle_update = True
+                        else:
+                            self.npy_img_origin_hw[i] = all_imgs_origin_hw.get(self.npy_files[i], None)
+
                 else:  # 'ram'
                     self.ims[i], self.im_hw0[i], self.im_hw[i] = x  # im, hw_orig, hw_resized = load_image(self, i)
                     b += self.ims[i].nbytes
                 pbar.desc = f"{self.prefix}Caching images ({b / gb:.1f}GB {storage})"
             pbar.close()
+
+        if origin_hw_pickle_update:
+            all_imgs_origin_hw["hash"] = get_hash(self.im_files)
+            save_dataset_cache_file(self.prefix, self.shape_cache_path, all_imgs_origin_hw, "chiebot1.0")
 
     def cache_images_to_disk(self, i):
         """Saves an image as an *.npy file for faster loading."""
@@ -243,10 +285,10 @@ class BaseDataset(Dataset):
 
         if not f.exists():
             img = read_img(self.im_files[i], self.image_decode_device)
-            h0, w0 = img.shape[:2]
-            self.npy_img_origin_hw[i] = (h0, w0)
 
             if self.cache_compress:
+                h0, w0 = img.shape[:2]
+                self.npy_img_origin_hw[i] = (h0, w0)
                 r = self.imgsz / max(h0, w0)  # ratio
                 if r != 1:  # if sizes are not equal
                     w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
@@ -301,16 +343,18 @@ class BaseDataset(Dataset):
     def __getitem__(self, index):
         """Returns transformed label information for given index."""
         with timeblock("get image and label spend time:"):
-            iandl=self.get_image_and_label(index)
+            iandl = self.get_image_and_label(index)
         with timeblock("transforms spend time:"):
-            r=self.transforms(iandl)
+            r = self.transforms(iandl)
         # return self.transforms(self.get_image_and_label(index))
         return r
 
     def get_image_and_label(self, index):
         """Get and return label information from the dataset."""
         with timeblock("get label:"):
-            label = deepcopy(self.labels[index])  # requires deepcopy() https://github.com/ultralytics/ultralytics/pull/1948
+            label = deepcopy(
+                self.labels[index]
+            )  # requires deepcopy() https://github.com/ultralytics/ultralytics/pull/1948
             label.pop("shape", None)  # shape is for rect, remove it
         with timeblock("load image:"):
             label["img"], label["ori_shape"], label["resized_shape"] = self.load_image(index)
@@ -321,7 +365,7 @@ class BaseDataset(Dataset):
             )  # for evaluation
             if self.rect:
                 label["rect_shape"] = self.batch_shapes[self.batch[index]]
-            r=self.update_labels_info(label)
+            r = self.update_labels_info(label)
         # return self.update_labels_info(label)
         return r
 

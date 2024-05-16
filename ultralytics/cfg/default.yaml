@@ -131,6 +131,4 @@ cache_compress: False
 
 chiebot_cfg:
   # key is the class name of augment
-  ag_skip:
-    RandomFlip_V: ["person"]
-    RandomFlip_H: ["captainfff"]
+  ag_skip: None

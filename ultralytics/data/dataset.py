@@ -37,10 +37,11 @@ from .utils import (
     verify_image_label,
 )
 
+from ultralytics.debug_tools import timethis
+
 # Ultralytics dataset *.cache version, >= 1.0.0 for YOLOv8
 DATASET_CACHE_VERSION = "1.0.3"
 
-from ultralytics.debug_tools import timethis
 
 
 class YOLODataset(BaseDataset):

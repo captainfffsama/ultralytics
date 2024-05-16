@@ -22,7 +22,7 @@ DEFAULT_MEAN = (0.0, 0.0, 0.0)
 DEFAULT_STD = (1.0, 1.0, 1.0)
 DEFAULT_CROP_FRACTION = 1.0
 
-from ultralytics.data.chiebot_augment.origin_ag_ext import skip_class_support
+from ultralytics.data.chiebot_augment.origin_ag_ext import SkipClassAGMixin
 
 
 
@@ -75,7 +75,10 @@ class Compose:
     def __call__(self, data):
         """Applies a series of transformations to input data."""
         for t in self.transforms:
-            data = t(data)
+            if isinstance(t,SkipClassAGMixin):
+                data=t.skip_call(data)
+            else:
+                data = t(data)
         return data
 
     def append(self, transform):
@@ -391,7 +394,7 @@ class MixUp(BaseMixTransform):
         return labels
 
 
-class RandomPerspective:
+class RandomPerspective(SkipClassAGMixin):
     """
     Implements random perspective and affine transformations on images and corresponding bounding boxes, segments, and
     keypoints. These transformations include rotation, translation, scaling, and shearing. The class also offers the
@@ -416,7 +419,7 @@ class RandomPerspective:
     """
 
     def __init__(
-        self, degrees=0.0, translate=0.1, scale=0.5, shear=0.0, perspective=0.0, border=(0, 0), pre_transform=None
+        self, degrees=0.0, translate=0.1, scale=0.5, shear=0.0, perspective=0.0, border=(0, 0), pre_transform=None,hyp=None
     ):
         """Initializes RandomPerspective object with transformation parameters."""
 
@@ -427,6 +430,7 @@ class RandomPerspective:
         self.perspective = perspective
         self.border = border  # mosaic border
         self.pre_transform = pre_transform
+        self.set_skip(hyp)
 
     def affine_transform(self, img, border):
         """
@@ -629,7 +633,7 @@ class RandomPerspective:
 
 
 # @skip_class_support
-class RandomHSV:
+class RandomHSV(SkipClassAGMixin):
     """
     This class is responsible for performing random adjustments to the Hue, Saturation, and Value (HSV) channels of an
     image.
@@ -637,7 +641,7 @@ class RandomHSV:
     The adjustments are random but within limits set by hgain, sgain, and vgain.
     """
 
-    def __init__(self, hgain=0.5, sgain=0.5, vgain=0.5) -> None:
+    def __init__(self, hgain=0.5, sgain=0.5, vgain=0.5,hyp=None) -> None:
         """
         Initialize RandomHSV class with gains for each HSV channel.
 
@@ -649,6 +653,7 @@ class RandomHSV:
         self.hgain = hgain
         self.sgain = sgain
         self.vgain = vgain
+        self.set_skip(hyp)
 
     def __call__(self, labels):
         """
@@ -673,12 +678,13 @@ class RandomHSV:
 
 
 # @skip_class_support
-class RandomRotate90:
+class RandomRotate90(SkipClassAGMixin):
 
-    def __init__(self, p=0.2) -> None:
+    def __init__(self, p=0.2,hyp=None) -> None:
         assert 0 <= p <= 1.0
 
         self.p = p
+        self.set_skip(hyp)
 
     def __call__(self, labels):
         """Resize image and padding for detection, instance segmentation, pose."""
@@ -717,14 +723,14 @@ class RandomRotate90:
 
 
 # @skip_class_support
-class RandomFlip:
+class RandomFlip(SkipClassAGMixin):
     """
     Applies a random horizontal or vertical flip to an image with a given probability.
 
     Also updates any instances (bounding boxes, keypoints, etc.) accordingly.
     """
 
-    def __init__(self, p=0.5, direction="horizontal", flip_idx=None) -> None:
+    def __init__(self, p=0.5, direction="horizontal", flip_idx=None,hyp=None) -> None:
         """
         Initializes the RandomFlip class with probability and direction.
 
@@ -740,6 +746,7 @@ class RandomFlip:
         self.p = p
         self.direction = direction
         self.flip_idx = flip_idx
+        self.set_skip(hyp)
 
     def __call__(self, labels):
         """
@@ -1158,6 +1165,7 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
                 shear=hyp.shear,
                 perspective=hyp.perspective,
                 pre_transform=None if stretch else LetterBox(new_shape=(imgsz, imgsz)),
+                hyp=hyp
             ),
         ]
     )
@@ -1175,10 +1183,10 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
             pre_transform,
             MixUp(dataset, pre_transform=pre_transform, p=hyp.mixup),
             Albumentations(p=1.0),
-            RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v),
-            # RandomRotate90(p=0.2,hyper_params=hyp),
-            RandomFlip(direction='vertical', p=hyp.flipud),
-            RandomFlip(direction='horizontal', p=hyp.fliplr, flip_idx=flip_idx)  # transforms
+            RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v,hyp=hyp),
+            # RandomRotate90(p=0.2,hyp=hyp),
+            RandomFlip(direction='vertical', p=hyp.flipud,hyp=hyp),
+            RandomFlip(direction='horizontal', p=hyp.fliplr, flip_idx=flip_idx,hyp=hyp)  # transforms
         ]
     )  # transforms
 

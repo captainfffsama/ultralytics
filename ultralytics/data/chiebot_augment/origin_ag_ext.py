@@ -11,17 +11,18 @@
 import numpy as np
 from typing import Tuple, Optional, Dict, Any, Union, List
 import random
-from ultralytics.utils import  LOGGER
+from ultralytics.utils import LOGGER
 from functools import wraps
 
 from albumentations.core.transforms_interface import DualTransform
 import albumentations.augmentations.crops.functional as ACF
 
 
+# FIXME: seems raise cpu soft lockup
 def skip_class_support(cls):
     """transform support skip some class now"""
 
-    cls.__init_original__= cls.__init__
+    cls.__init_original__ = cls.__init__
 
     # @wraps(cls.__init_original__)
     def _init_fix(
@@ -41,7 +42,6 @@ def skip_class_support(cls):
         if "RandomFlip" == cache_search_idx:
             cache_search_idx += "_{}".format(self.direction[0].upper())
         cfg_skip = setting_cache_ag_skip.get(cache_search_idx, [])
-
 
         pp = repr(setting_cache_n2i.keys())
         for i in skip_class_idx:
@@ -64,7 +64,6 @@ def skip_class_support(cls):
                 ppkwargs = str(kwargs) if kwargs else ""
                 LOGGER.info(f"INFO💡:{self.__class__.__name__}({ppargs},{ppkwargs}) will skip class :{pps}")
 
-
     cls.__init__ = _init_fix
 
     cls.__call_original__ = cls.__call__
@@ -83,7 +82,7 @@ def skip_class_support(cls):
         """
 
         label_idx = data["cls"]
-        skip_idx = np.array([x in self.skip_class for x in label_idx], dtype=bool)
+        skip_idx = np.isin(label_idx,self.skip_class)
 
         if skip_idx.any():
             return data
@@ -92,6 +91,49 @@ def skip_class_support(cls):
 
     cls.__call__ = _call_fix
     return cls
+
+
+class SkipClassAGMixin(object):
+    def set_skip(self, hyp: Optional[Dict[str, Any]] = None):
+        ppkwargs = ",".join(["{}={}".format(k, v) for k, v in self.__dict__.items()])
+        setting_cache_ag_skip = {}
+        setting_cache_n2i = {}
+        if hyp is not None:
+            setting_cache_ag_skip = hyp.get("chiebot_cache_cfg_ag_skip", {})
+            setting_cache_n2i = hyp.get("chiebot_cache_name2clsidx", {})
+        cache_search_idx = self.__class__.__name__
+        if "RandomFlip" == cache_search_idx:
+            cache_search_idx += "_{}".format(self.direction[0].upper())
+        cfg_skip = setting_cache_ag_skip.get(cache_search_idx, [])
+
+        self.skip_class = tuple(dict.fromkeys(cfg_skip).keys())
+        if self.skip_class:
+            if setting_cache_n2i is not None:
+                idx2name = {v: k for k, v in setting_cache_n2i.items()}
+                skip_class_names = [idx2name.get(i, i) for i in self.skip_class]
+                pps = repr(skip_class_names)
+                LOGGER.info(f"INFO💡:{self.__class__.__name__}({ppkwargs}) will skip class :{pps}")
+
+    def skip_call(self, labels):
+        """
+        labels = {
+            "im_file":str img_path
+            "cls": Nx1 np.ndarray class labels
+            "img": HxWx3 np.ndarray image
+            "ori_shape": Tuple[int,int] origin hw
+            "resized_shape": Tuple[int,int] resized HW
+            "ratio_pad": Tuple[float,float] ratio of H/h W/w
+            "instances": ultralytics/utils/instance.py:Instances
+        }
+        """
+
+        label_idx = labels["cls"]
+        skip_idx = np.isin(label_idx,self.skip_class)
+
+        if skip_idx.any():
+            return labels
+        else:
+            return self.__call__(labels)
 
 
 class CropBox(DualTransform):
