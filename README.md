@@ -50,7 +50,7 @@
 <details open>
 <summary>特别用法</summary>
 
-grpc 服务启动
+**grpc 服务启动**
 ```shell
 yolo grpc your_server_config_file_path
 ```
@@ -58,6 +58,7 @@ yolo grpc your_server_config_file_path
 `your_server_config_file_path` 写法参见[docs/chiebot](docs/chiebot.md)
 
 **yolo grpc 支持,嵌入运算啦!!!**
+**yolo 现在可以对硬盘缓存压缩了!!!**
 
 </details>
 
