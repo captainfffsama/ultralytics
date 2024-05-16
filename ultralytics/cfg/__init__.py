@@ -171,12 +171,15 @@ CFG_BOOL_KEYS = {
     "nms",
     "profile",
     "multi_scale",
+
+    "cache_compress",
+    "super_loss",
 }
 
 CFG_LIMIT_CHOICES_KEYS = {
-    "metric_method": {"yolov8","voc"}
+    "metric_method": {"yolov8", "voc"},
+    "image_decode_device": {"cpu", "cuda"},
 }
-
 
 
 def cfg2dict(cfg):
@@ -267,7 +270,9 @@ def check_cfg(cfg, hard=True):
                 cfg[k] = bool(v)
             elif k in CFG_LIMIT_CHOICES_KEYS and v not in CFG_LIMIT_CHOICES_KEYS[k]:
                 if hard:
-                    raise ValueError(f"'{k}={v}' is an invalid value. " f"Valid '{k}' values are {CFG_LIMIT_CHOICES_KEYS[k]}")
+                    raise ValueError(
+                        f"'{k}={v}' is an invalid value. " f"Valid '{k}' values are {CFG_LIMIT_CHOICES_KEYS[k]}"
+                    )
                 cfg[k] = v
 
 
@@ -305,10 +310,12 @@ def _handle_deprecation(custom):
 
     return custom
 
-SKIP_CHECK_KEYS={
-"chiebot_cache_cfg_ag_skip",
-"chiebot_cache_name2clsidx",
+
+SKIP_CHECK_KEYS = {
+    "chiebot_cache_cfg_ag_skip",
+    "chiebot_cache_name2clsidx",
 }
+
 
 def check_dict_alignment(base: Dict, custom: Dict, e=None):
     """
@@ -609,12 +616,14 @@ def copy_default_cfg():
         f"Example YOLO command with this new custom cfg:\n    yolo cfg='{new_file}' imgsz=320 batch=8"
     )
 
+
 def handle_grpc(args):
     if not args:
         LOGGER.error(f"ERROR ⚠️,grpc need a cfg file")
         return
     if os.path.exists(args[0]):
         from ultralytics.grpc_server import run_grpc
+
         run_grpc(args[0])
     else:
         LOGGER.error(f"ERROR ⚠️,grpc need a cfg file,{args[0]} not exists")

@@ -351,8 +351,12 @@ class DetectionModel(BaseModel):
 
     def init_criterion(self):
         """Initialize the loss criterion for the DetectionModel."""
-        return v8DetectionLoss(self)
-        # return v8HQDetectionLoss(self)
+        if hasattr(self,"args") and self.args.get("super_loss",False):
+            LOGGER.info("💡 Model will use super loss!!!")
+            return v8HQDetectionLoss(self)
+        else:
+            LOGGER.info("💡 Model will official loss!!!")
+            return v8DetectionLoss(self)
 
 class OBBModel(DetectionModel):
     """YOLOv8 Oriented Bounding Box (OBB) model."""
