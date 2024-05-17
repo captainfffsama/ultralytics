@@ -1089,7 +1089,13 @@ class DetMetrics(SimpleClass):
     @property
     def results_dict(self):
         """Returns dictionary of computed performance metrics and statistics."""
-        return dict(zip(self.keys + ["fitness"], self.mean_results() + [self.fitness]))
+        originl_r=dict(zip(self.keys + ["fitness"], self.mean_results() + [self.fitness]))
+        for i,c in enumerate(self.box.ap_class_index):
+            originl_r[f"Class_AP50-95/{self.names[c]}"] = self.box.ap[i]
+            originl_r[f"Class_AP50/{self.names[c]}"] = self.box.ap50[i]
+            originl_r[f"Class_Precision/{self.names[c]}"] = self.box.p[i]
+            originl_r[f"Class_Recall/{self.names[c]}"] = self.box.r[i]
+        return originl_r
 
     @property
     def curves(self):

@@ -30,9 +30,10 @@ def _log_scalars(scalars, step=0):
         for k, v in scalars.items():
             WRITER.add_scalar(k, v, step)
 
-def _log_text(tag:str,text:str, step=0):
+
+def _log_text(tag: str, text: str, step=0):
     if WRITER:
-        WRITER.add_text(tag,text,step)
+        WRITER.add_text(tag, text, step)
 
 
 def _log_tensorboard_graph(trainer):
@@ -97,13 +98,12 @@ def on_train_epoch_end(trainer):
 def on_fit_epoch_end(trainer):
     """Logs epoch metrics at end of training epoch."""
     _log_scalars(trainer.metrics, trainer.epoch + 1)
-    _log_scalars({'lr/lr': trainer.lr['lr/pg0']}, trainer.epoch+1)
+    _log_scalars({"lr/lr": trainer.lr["lr/pg0"]}, trainer.epoch + 1)
+
 
 def on_val_end(validator):
-    if hasattr(validator.metrics,"result_table_str"):
+    if hasattr(validator.metrics, "result_table_str"):
         _log_text("classes map", validator.metrics.result_table_str, 0)
-
-
 
 
 callbacks = (

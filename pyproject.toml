@@ -80,7 +80,7 @@ dependencies = [
     "seaborn>=0.11.0", # plotting
     "albumentations>=1.0.3",
     "grpcio-tools>=1.59.0",
-    "grpc>=1.59.0"
+    "grpcio>=1.59.0"
 ]
 
 # Optional dependencies ------------------------------------------------------------------------------------------------

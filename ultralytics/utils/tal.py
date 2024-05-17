@@ -449,11 +449,11 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         # Get anchor_align metric, (b, max_num_obj, h*w)
         align_metric, overlaps = self.get_box_metrics(pd_scores, pd_bboxes, gt_labels, gt_bboxes, mask_in_gts * mask_gt)
         # Get topk_metric mask, (b, max_num_obj, h*w)
-        # mask_topk, not_good_idx = self.select_auto_topk(align_metric, mask_in_gts, mask_gt.bool())
-        mask_topk = self.select_topk_candidates(align_metric, topk_mask=mask_gt.expand(-1, -1, self.topk).bool())
+        mask_topk, not_good_idx = self.select_auto_topk(align_metric, mask_in_gts, mask_gt.bool())
+        # mask_topk = self.select_topk_candidates(align_metric, topk_mask=mask_gt.expand(-1, -1, self.topk).bool())
         # Merge all mask to a final mask, (b, max_num_obj, h*w)
         mask_pos = mask_topk * mask_in_gts * mask_gt
-        not_good_idx=torch.zeros_like(mask_pos)
+        # not_good_idx=torch.zeros_like(mask_pos)
 
         return mask_pos, align_metric, overlaps, mask_in_gts,not_good_idx
 
