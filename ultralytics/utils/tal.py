@@ -358,12 +358,21 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         target_scores = target_scores * tmp[:, :, 1:]
 
         # generate not_good_mask
-        not_good_tmp=not_good_idx*(gt_labels+1)
-        #b,hw,m
-        not_good_tmp=not_good_tmp.permute(0, 2, 1).long()
-        not_good_tmp1=torch.zeros(not_good_tmp.shape[0],not_good_tmp.shape[1],self.num_classes+1,dtype=torch.bool,device=not_good_tmp.device)
-        not_good_tmp1.scatter_(2,not_good_tmp,True)
-        _,not_good_mask=not_good_tmp1.split([1,self.num_classes],-1)
+        good_idx=~not_good_idx.bool()
+        # not_good_tmp=not_good_idx*(gt_labels+1)
+        # #b,hw,m
+        # not_good_tmp=not_good_tmp.permute(0, 2, 1).long()
+        # not_good_tmp1=torch.zeros(not_good_tmp.shape[0],not_good_tmp.shape[1],self.num_classes+1,dtype=torch.bool,device=not_good_tmp.device)
+        # not_good_tmp1.scatter_(2,not_good_tmp,True)
+        # _,not_good_mask=not_good_tmp1.split([1,self.num_classes],-1)
+
+        good_tmp=good_idx*(gt_labels+1)
+        good_tmp=good_tmp.permute(0, 2, 1).long()
+        good_tmp1=torch.zeros(good_tmp.shape[0],good_tmp.shape[1],self.num_classes+1,dtype=torch.bool,device=good_tmp.device)
+        good_tmp1.scatter_(2,good_tmp,True)
+        _,good_mask=good_tmp1.split([1,self.num_classes],-1)
+        not_good_mask=~good_mask.bool()
+
 
         return (
             target_labels,
@@ -500,6 +509,7 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         metrics_idx = metrics_idx & mask_gt.bool()
 
         r_thr = mask_mean - sigma_coefficient * mask_std
+        # FIXME: too naive,multi boxes are same classes will have problem
         not_good_idx = (metrics >= r_thr[:, :, None])&(metrics<l_thr[:, :, None])
         not_good_idx = not_good_idx& ~metrics_idx
         not_good_idx = not_good_idx & mask_in_gts.bool()

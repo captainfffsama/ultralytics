@@ -319,16 +319,16 @@ class v8HQDetectionLoss(v8DetectionLoss):
         )
 
         target_scores_sum = max(target_scores.sum(), 1)
-        bg_mask = ~((~bg_mask).sum(1).bool())
-        fgvbg_w = min(bg_mask.sum() / (3 * fg_mask.sum() + 1), 10.0)
+        # bg_mask = ~((~bg_mask).sum(1).bool())
+        # fgvbg_w = min(bg_mask.sum() / (3 * fg_mask.sum() + 1), 10.0)
 
-        loss_weight = bg_mask + fg_mask
+        # loss_weight = bg_mask + fg_mask
 
         # Cls loss
         # loss[1] = self.varifocal_loss(pred_scores, target_scores, target_labels) / target_scores_sum  # VFL way
 
-        # target_scores[not_good_mask]=0.5
-        # pred_scores[not_good_mask]=0.5
+        target_scores[not_good_mask]=0.5
+        pred_scores[not_good_mask]=0.5
 
         loss_cls = self.bce(pred_scores, target_scores.to(dtype))
         # loss_cls = loss_cls * loss_weight.unsqueeze(-1)
