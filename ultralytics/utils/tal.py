@@ -486,7 +486,7 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         Returns:
             (Tensor): A tensor of shape (b, max_num_obj, h*w) containing the selected top-k candidates.
         """
-        sigma_coefficient = 0.5
+        sigma_coefficient = 1.0
         # mask_mean
         mask_obj_num = mask_in_gts.sum(-1)  # B, max_num_obj
         if mask_gt is None:
@@ -494,16 +494,20 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
             mask_gt = mask_gt[:, :, None]
         mask_tmp = ~(mask_gt.squeeze(-1).type(torch.bool)) * self.eps
         mask_obj_num += mask_tmp
-        mask_mean = metrics.sum(-1) / mask_obj_num  # B,max_num_obj
 
-        # mask_std
-        mask_std = ((metrics - mask_mean.unsqueeze(-1)) ** 2).sum(-1).sqrt()
+        mask_metrics =metrics*mask_in_gts.to(metrics.dtype)
+        mask_mean =mask_metrics.sum(-1) / mask_obj_num  # B,max_num_obj
+
+        # mask_std = ((metrics - mask_mean.unsqueeze(-1)) ** 2).sum(-1).sqrt()
+        mask_std=(((mask_metrics-mask_mean.unsqueeze(-1))*mask_in_gts.to(metrics.dtype)**2).sum(-1)/mask_obj_num).sqrt()
+        mask_std.clamp_(min=0.0)
 
         l_thr = mask_mean + sigma_coefficient * mask_std
 
         # b,max_num_obj,h*w
         metrics_idx = metrics >= l_thr[:, :, None]
 
+        # FIXME: 若这里 有图片没有gt，这里会报错
         max_args = torch.argmax(metrics, dim=-1)
         metrics_idx = metrics_idx.scatter(2, max_args[:, :, None], True)
         metrics_idx = metrics_idx & mask_gt.bool()
