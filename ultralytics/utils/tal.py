@@ -486,7 +486,7 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         Returns:
             (Tensor): A tensor of shape (b, max_num_obj, h*w) containing the selected top-k candidates.
         """
-        sigma_coefficient = 1.0
+        sigma_coefficient = 3.0
         # mask_mean
         mask_obj_num = mask_in_gts.sum(-1)  # B, max_num_obj
         if mask_gt is None:
@@ -499,8 +499,9 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         mask_mean =mask_metrics.sum(-1) / mask_obj_num  # B,max_num_obj
 
         # mask_std = ((metrics - mask_mean.unsqueeze(-1)) ** 2).sum(-1).sqrt()
-        mask_std=(((mask_metrics-mask_mean.unsqueeze(-1))*mask_in_gts.to(metrics.dtype)**2).sum(-1)/mask_obj_num).sqrt()
+        mask_std=((((mask_metrics-mask_mean.unsqueeze(-1))*mask_in_gts.to(metrics.dtype))**2).sum(-1)/mask_obj_num)
         mask_std.clamp_(min=0.0)
+        mask_std.sqrt_()
 
         l_thr = mask_mean + sigma_coefficient * mask_std
 
@@ -508,11 +509,11 @@ class CaptainAlignedAssiger(TaskAlignedAssigner):
         metrics_idx = metrics >= l_thr[:, :, None]
 
         # FIXME: 若这里 有图片没有gt，这里会报错
-        max_args = torch.argmax(metrics, dim=-1)
-        metrics_idx = metrics_idx.scatter(2, max_args[:, :, None], True)
+        # max_args = torch.argmax(metrics, dim=-1)
+        # metrics_idx = metrics_idx.scatter(2, max_args[:, :, None], True)
         metrics_idx = metrics_idx & mask_gt.bool()
 
-        r_thr = mask_mean - sigma_coefficient * mask_std
+        r_thr = mask_mean - 0.1* mask_std
         # FIXME: too naive,multi boxes are same classes will have problem
         not_good_idx = (metrics >= r_thr[:, :, None])&(metrics<l_thr[:, :, None])
         not_good_idx = not_good_idx& ~metrics_idx
