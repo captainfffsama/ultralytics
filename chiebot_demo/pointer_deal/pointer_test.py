@@ -3,8 +3,8 @@
 @Author: captainfffsama
 @Date: 2024-08-16 14:02:55
 @LastEditors: captainfffsama tuanzhangsama@outlook.com
-@LastEditTime: 2024-08-16 14:02:55
-@FilePath: /ultralytics/chiebot_demo/pointer_deal/test_tmp.py
+@LastEditTime: 2024-08-22 15:37:55
+@FilePath: /ultralytics/chiebot_demo/pointer_deal/pointer_test.py
 @Description:
 '''
 # -*- coding: utf-8 -*-
@@ -18,12 +18,15 @@
 """
 
 import os
+import argparse
+from pathlib import Path
 
 from tqdm import tqdm
 import torch
 
 from ultralytics import YOLO
 from ultralytics.models.yolo.pose.val import PoseValidator
+from labelme2yolov8_kp import main as l2ymain
 LABEL2IDX={
   'black_color_pointer': 0,
   'red_color_pointer': 1,
@@ -49,7 +52,10 @@ def get_all_file_path(file_dir: str, filter_=(".jpg")) -> list:
 
 class ChiebotPoseValidator(PoseValidator):
     def __init__(self,box_thr:float=0.25,*args,**kwargs):
-        super().__init__(*args,**kwargs)
+        self.save_dir=kwargs['args'].get("save_dir",None)
+        if self.save_dir:
+            self.save_dir=Path(self.save_dir)
+        super().__init__(save_dir=self.save_dir,*args,**kwargs)
         self.box_thr=box_thr
 
     def _postprocess_one(self,pred:torch.Tensor):
@@ -111,10 +117,51 @@ class ChiebotPoseValidator(PoseValidator):
         return final_preds
 
 
-# Load a model
-# model=YOLO("/data/weight/2401beijing/1/best.pt")
-model = YOLO("/data/tmp/pointer_weight/best.pt")
-# model = YOLO("/data/tmp/can_rm/model_test/soft_two_hot.pt")  # build a new model from YAML
-m=model.val(data="/data/own_dataset/pointer_num_f/dataset.yaml",validator= ChiebotPoseValidator)
-print(m.box.ap50)
-print(m.pose.ap50)
+def main(args):
+    weight_path=args.model
+    data_dir=args.datadir
+    dataset_yaml=os.path.join(data_dir,"dataset.yaml")
+    if not os.path.exists(dataset_yaml):
+        print("will transform labelme to yolov8")
+        class_info = [
+            "black_color_pointer",
+            "red_color_pointer",
+            "other_color_pointer",
+            "special_pointer",
+        ]
+        l2ymain(data_dir,data_dir,class_info)
+
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir)
+
+
+    # Load a model
+    # model=YOLO("/data/weight/2401beijing/1/best.pt")
+    model = YOLO(weight_path)
+    if args.infer_method=="chiebot":
+        validator=ChiebotPoseValidator
+    else:
+        validator=PoseValidator
+    m=model.val(data=dataset_yaml,validator=validator,save_json=True,save_dir=args.save_dir)
+
+    use_val_idx=m.ap_class_index
+    idx2cls=model.names
+    results=[]
+    for idx,(box_ap,pose_ap) in enumerate(zip(m.box.ap50,m.pose.ap50)):
+        current_cls=idx2cls[use_val_idx[idx]]
+        result=f"{current_cls} box ap50: {box_ap:^8.4f} pose ap50: {pose_ap:^8.4f}\n"
+        results.append(result)
+    with open(os.path.join(args.save_dir,"result.txt"),"w") as f:
+        f.writelines(results)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-m","--model",type=str, default="/data/tmp/pointer_weight/best.pt")
+    parser.add_argument("-d","--datadir", type=str, default="/data/own_dataset/pointer_num_f/data_bak/data")
+    parser.add_argument("-i","--infer_method", type=str, default="chiebot")
+    parser.add_argument("-s","--save_dir", type=str, default="/data/tmp/pointer")
+    args = parser.parse_args()
+
+    main(args)
+

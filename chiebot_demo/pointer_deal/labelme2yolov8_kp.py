@@ -3,7 +3,7 @@
 @Author: captainfffsama
 @Date: 2024-08-16 14:02:33
 @LastEditors: captainfffsama tuanzhangsama@outlook.com
-@LastEditTime: 2024-08-16 14:02:34
+@LastEditTime: 2024-08-22 14:37:36
 @FilePath: /ultralytics/chiebot_demo/pointer_deal/labelme2yolov8_kp.py
 @Description:
 '''
@@ -130,9 +130,9 @@ def generate_yaml(save_dir, class_map):
     kp_num = 2
     result = {
         "path": save_dir,
-        "train": "",
-        "val": "",
-        "test": "",
+        "train": "./",
+        "val": "./",
+        "test": "./",
         "kpt_shape": [kp_num, 3],
         "flip_idx": [x for x in range(kp_num)],
         "names": {v: k for k, v in class_map.items()},
