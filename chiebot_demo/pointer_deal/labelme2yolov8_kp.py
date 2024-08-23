@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 @Author: captainfffsama
 @Date: 2024-08-16 14:02:33
 @LastEditors: captainfffsama tuanzhangsama@outlook.com
-@LastEditTime: 2024-08-22 14:37:36
+@LastEditTime: 2024-08-23 11:24:05
 @FilePath: /ultralytics/chiebot_demo/pointer_deal/labelme2yolov8_kp.py
 @Description:
-'''
+"""
+
 # -*- coding: utf-8 -*-
 """
 @Author: captainfffsama
@@ -99,8 +100,8 @@ def deal_one(json_path, save_dir, class_map: dict):
         # if shape['shape_type'] in ('polygon','line'):
         if shape["shape_type"] in ("line",):
             kps = np.array(shape["points"])
-            kps[:,0]=np.clip(kps[:,0],0,w)
-            kps[:,1]=np.clip(kps[:,1],0,h)
+            kps[:, 0] = np.clip(kps[:, 0], 0, w)
+            kps[:, 1] = np.clip(kps[:, 1], 0, h)
             kps_is_invisible = mark_invisible(kps, invisible_rect)
             kps_is_invisible = kps_is_invisible.astype(float)
 
@@ -111,6 +112,9 @@ def deal_one(json_path, save_dir, class_map: dict):
             cxy: np.ndarray = ertl + erwh / 2
             erwh = erwh / np.array([w, h])
             cxy = cxy / np.array([w, h])
+            if shape["label"] not in class_map:
+                print(f"{json_path} label {shape['label']} not in class_map,may be a wrong label")
+                continue
             label = class_map[shape["label"]]
             kps = kps / np.array([w, h])
             kps_info = np.concatenate([kps, kps_is_invisible], axis=1).flatten()
