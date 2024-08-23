@@ -4,7 +4,7 @@ import contextlib
 import math
 import warnings
 from pathlib import Path
-from typing import List,Tuple, Union,Callable,Optional
+from typing import List,Tuple, Union,Callable,Optional,Dict
 
 import cv2
 import matplotlib.pyplot as plt

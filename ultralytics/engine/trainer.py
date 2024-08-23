@@ -387,32 +387,20 @@ class BaseTrainer:
                                 if "momentum" in x:
                                     x["momentum"] = np.interp(ni, xi, [self.args.warmup_momentum, self.args.momentum])
 
-                    # Forward
-                    with torch.cuda.amp.autocast(self.amp):
-                        with timeblock("preprocess batch:",RANK in {-1,0}):
+                    with timeblock("forward spend time:",RANK in {-1,0}):
+                        # Forward
+                        with autocast(self.amp):
                             batch = self.preprocess_batch(batch)
-                        with timeblock("get loss:",RANK in {-1,0}):
                             self.loss, self.loss_items = self.model(batch)
-                        if RANK != -1:
-                            self.loss *= world_size
-                        self.tloss = (
-                            (self.tloss * i + self.loss_items) / (i + 1) if self.tloss is not None else self.loss_items
-                        )
-                        if "momentum" in x:
-                            x["momentum"] = np.interp(ni, xi, [self.args.warmup_momentum, self.args.momentum])
+                            if RANK != -1:
+                                self.loss *= world_size
+                            self.tloss = (
+                                (self.tloss * i + self.loss_items) / (i + 1) if self.tloss is not None else self.loss_items
+                            )
 
-                # Forward
-                with autocast(self.amp):
-                    batch = self.preprocess_batch(batch)
-                    self.loss, self.loss_items = self.model(batch)
-                    if RANK != -1:
-                        self.loss *= world_size
-                    self.tloss = (
-                        (self.tloss * i + self.loss_items) / (i + 1) if self.tloss is not None else self.loss_items
-                    )
-
-                # Backward
-                self.scaler.scale(self.loss).backward()
+                    with timeblock("backward spend time:",RANK in {-1,0}):
+                        # Backward
+                        self.scaler.scale(self.loss).backward()
 
                 # Optimize - https://pytorch.org/docs/master/notes/amp_examples.html
                 if ni - last_opt_step >= self.accumulate:
@@ -442,42 +430,8 @@ class BaseTrainer:
                     if self.args.plots and ni in self.plot_idx:
                         self.plot_training_samples(batch, ni)
 
-                    # Backward
-                    with timeblock("backward:",RANK in {-1,0}):
-                        self.scaler.scale(self.loss).backward()
-
-                    with timeblock("optimize:",RANK in {-1,0}):
-                        # Optimize - https://pytorch.org/docs/master/notes/amp_examples.html
-                        if ni - last_opt_step >= self.accumulate:
-                            self.optimizer_step()
-                            last_opt_step = ni
-
-                            # Timed stopping
-                            if self.args.time:
-                                self.stop = (time.time() - self.train_time_start) > (self.args.time * 3600)
-                                if RANK != -1:  # if DDP training
-                                    broadcast_list = [self.stop if RANK == 0 else None]
-                                    dist.broadcast_object_list(broadcast_list, 0)  # broadcast 'stop' to all ranks
-                                    self.stop = broadcast_list[0]
-                                if self.stop:  # training time exceeded
-                                    break
-
-                    with timeblock("log:",RANK in {-1,0}):
-                        # Log
-                        mem = f"{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G"  # (GB)
-                        loss_len = self.tloss.shape[0] if len(self.tloss.shape) else 1
-                        losses = self.tloss if loss_len > 1 else torch.unsqueeze(self.tloss, 0)
-                        if RANK in {-1, 0}:
-                            pbar.set_description(
-                                ("%11s" * 2 + "%11.4g" * (2 + loss_len))
-                                % (f"{epoch + 1}/{self.epochs}", mem, *losses, batch["cls"].shape[0], batch["img"].shape[-1])
-                            )
-                            self.run_callbacks("on_batch_end")
-                            if self.args.plots and ni in self.plot_idx:
-                                self.plot_training_samples(batch, ni)
-
-                    with timeblock("batch_end:",RANK in {-1,0}):
-                        self.run_callbacks("on_train_batch_end")
+                with timeblock("batch_end:",RANK in {-1,0}):
+                    self.run_callbacks("on_train_batch_end")
 
             self.lr = {f"lr/pg{ir}": x["lr"] for ir, x in enumerate(self.optimizer.param_groups)}  # for loggers
             self.run_callbacks("on_train_epoch_end")

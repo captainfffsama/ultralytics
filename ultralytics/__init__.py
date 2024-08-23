@@ -7,6 +7,8 @@ import os
 # Set ENV Variables (place before imports)
 os.environ["OMP_NUM_THREADS"] = "1"  # reduce CPU utilization during training
 
+import numpy
+
 from ultralytics.data.explorer.explorer import Explorer
 from ultralytics.models import NAS, RTDETR, SAM, YOLO, FastSAM, YOLOWorld
 from ultralytics.utils import ASSETS, SETTINGS

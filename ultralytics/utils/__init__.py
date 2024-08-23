@@ -16,7 +16,6 @@ import uuid
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Union
-from weakref import WeakValueDictionary
 
 import cv2
 import matplotlib.pyplot as plt
