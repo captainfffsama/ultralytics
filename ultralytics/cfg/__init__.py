@@ -134,6 +134,7 @@ CFG_FRACTION_KEYS = {  # fractional float arguments with 0.0<=values<=1.0
     "conf",
     "iou",
     "fraction",
+    "point_generate_box_ratio",
 }
 CFG_INT_KEYS = {  # integer-only arguments
     "epochs",
@@ -186,6 +187,7 @@ CFG_BOOL_KEYS = {  # boolean-only arguments
 
     "cache_compress",
     "super_loss",
+    "point_generate_box",
 }
 
 CFG_LIMIT_CHOICES_KEYS = {

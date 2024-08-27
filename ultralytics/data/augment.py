@@ -15,15 +15,17 @@ from ultralytics.utils import LOGGER, colorstr
 from ultralytics.utils.checks import check_version
 from ultralytics.utils.instance import Instances
 from ultralytics.utils.metrics import bbox_ioa
-from ultralytics.utils.ops import segment2box, xyxyxyxy2xywhr
+from ultralytics.utils.ops import segment2box, xyxyxyxy2xywhr, xyxy2xywh
 from ultralytics.utils.torch_utils import TORCHVISION_0_10, TORCHVISION_0_11, TORCHVISION_0_13
+from ultralytics.utils.plotting import plot_images
+
+from ultralytics.data.chiebot_augment.origin_ag_ext import SkipClassAGMixin
+
+import ultralytics.debug_tools as D
 
 DEFAULT_MEAN = (0.0, 0.0, 0.0)
 DEFAULT_STD = (1.0, 1.0, 1.0)
 DEFAULT_CROP_FRACTION = 1.0
-
-from ultralytics.data.chiebot_augment.origin_ag_ext import SkipClassAGMixin
-
 
 
 class BaseTransform:
@@ -201,8 +203,8 @@ class Compose:
             >>> transformed_data = compose(input_data)
         """
         for t in self.transforms:
-            if isinstance(t,SkipClassAGMixin):
-                data=t.skip_call(data)
+            if isinstance(t, SkipClassAGMixin):
+                data = t.skip_call(data)
             else:
                 data = t(data)
         return data
@@ -987,7 +989,15 @@ class RandomPerspective(SkipClassAGMixin):
     """
 
     def __init__(
-        self, degrees=0.0, translate=0.1, scale=0.5, shear=0.0, perspective=0.0, border=(0, 0), pre_transform=None,hyp=None
+        self,
+        degrees=0.0,
+        translate=0.1,
+        scale=0.5,
+        shear=0.0,
+        perspective=0.0,
+        border=(0, 0),
+        pre_transform=None,
+        hyp=None,
     ):
         """
         Initializes RandomPerspective object with transformation parameters.
@@ -1018,6 +1028,8 @@ class RandomPerspective(SkipClassAGMixin):
         self.border = border  # mosaic border
         self.pre_transform = pre_transform
         self.set_skip(hyp)
+        self.point_generate_box = hyp.point_generate_box
+        self.point_generate_box_ratio = hyp.point_generate_box_ratio
 
     def affine_transform(self, img, border):
         """
@@ -1236,6 +1248,18 @@ class RandomPerspective(SkipClassAGMixin):
 
         border = labels.pop("mosaic_border", self.border)
         self.size = img.shape[1] + border[1] * 2, img.shape[0] + border[0] * 2  # w, h
+
+        # DEBUG:
+        # img_t = np.transpose(img, (2, 0, 1))[None, ...]
+        # img_t = plot_images(
+        #     img_t,
+        #     np.zeros((cls.shape[0],)),
+        #     cls.squeeze(axis=1),
+        #     xyxy2xywh(instances.bboxes),
+        #     kpts=instances.keypoints,
+        #     save=False,
+        #     threaded=False,
+        # )
         # M is affine matrix
         # Scale for func:`box_candidates`
         img, M, scale = self.affine_transform(img, border)
@@ -1250,6 +1274,8 @@ class RandomPerspective(SkipClassAGMixin):
 
         if keypoints is not None:
             keypoints = self.apply_keypoints(keypoints, M)
+            if self.point_generate_box:
+                bboxes=self.kps2bboxes(keypoints,self.point_generate_box_ratio,img.shape)
         new_instances = Instances(bboxes, segments, keypoints, bbox_format="xyxy", normalized=False)
         # Clip
         new_instances.clip(*self.size)
@@ -1264,7 +1290,50 @@ class RandomPerspective(SkipClassAGMixin):
         labels["cls"] = cls[i]
         labels["img"] = img
         labels["resized_shape"] = img.shape[:2]
+        # DEBUG:
+        # img_t1 = np.transpose(img, (2, 0, 1))[None, ...]
+        # img_t1 = plot_images(
+        #     img_t1,
+        #     np.zeros((cls.shape[0],)),
+        #     cls.squeeze(axis=1),
+        #     xyxy2xywh(new_instances.bboxes),
+        #     kpts=new_instances.keypoints,
+        #     save=False,
+        #     threaded=False,
+        # )
+        # D.show_img([img_t, img_t1], save_path="/data/tmp/can_rm/test.png")
         return labels
+
+    def _expand_rect(self, tl: np.ndarray, br: np.ndarray, h: int, w: int, r: float = 0.4):
+        erhw_rate = (br - tl).min() / (br - tl).max()
+        if erhw_rate < 0.1:
+            D = int(0.05 * (br - tl).max())
+        else:
+            A = (br - tl).min() * (br - tl).max()
+            L = 2 * ((br - tl).min() + (br - tl).max())
+            D = int(A * (1 - r**2) / L)
+
+        tl = tl - D
+        br = br + D
+        tl[:, 0] = np.clip(tl[:, 0], 0, w)
+        tl[:, 1] = np.clip(tl[:, 1], 0, h)
+        br[:, 0] = np.clip(br[:, 0], 0, w)
+        br[:, 1] = np.clip(br[:, 1], 0, h)
+        return tl, br
+
+    def kps2bboxes(self, kps: np.ndarray, expant_ratio: float, img_shape: Tuple[int, int]):
+        """_summary_
+
+        Args:
+            kps (np.ndarray): (num_obj,class_kp,3)
+            expant_ratio (float):
+            img_shape (Tuple[int,int]): image shape.limit box range
+        """
+        tl_kp = kps[:, :, :2].min(axis=1)
+        br_kp = kps[:, :, :2].max(axis=1)
+        h,w,_=img_shape
+        tl_kp,br_kp=self._expand_rect(tl_kp,br_kp,h,w,expant_ratio)
+        return np.concatenate([tl_kp,br_kp],axis=1)
 
     def box_candidates(self, box1, box2, wh_thr=2, ar_thr=100, area_thr=0.1, eps=1e-16):
         """
@@ -1330,7 +1399,7 @@ class RandomHSV(SkipClassAGMixin):
         >>> augmented_image = augmented_labels["img"]
     """
 
-    def __init__(self, hgain=0.5, sgain=0.5, vgain=0.5,hyp=None) -> None:
+    def __init__(self, hgain=0.5, sgain=0.5, vgain=0.5, hyp=None) -> None:
         """
         Initializes the RandomHSV object for random HSV (Hue, Saturation, Value) augmentation.
 
@@ -1389,8 +1458,7 @@ class RandomHSV(SkipClassAGMixin):
 
 # @skip_class_support
 class RandomRotate90(SkipClassAGMixin):
-
-    def __init__(self, p=0.2,hyp=None) -> None:
+    def __init__(self, p=0.2, hyp=None) -> None:
         assert 0 <= p <= 1.0
 
         self.p = p
@@ -1399,12 +1467,12 @@ class RandomRotate90(SkipClassAGMixin):
     def __call__(self, labels):
         """Resize image and padding for detection, instance segmentation, pose."""
         if random.random() < self.p:
-            img = labels['img']
-            instances = labels.pop('instances')
+            img = labels["img"]
+            instances = labels.pop("instances")
             h, w = img.shape[:2]
             instances.denormalize(w, h)
             assert instances.normalized == False
-            instances.convert_bbox(format='xyxy')
+            instances.convert_bbox(format="xyxy")
             bboxes = instances.bboxes
 
             degree = random.choice([90, -90])
@@ -1412,23 +1480,23 @@ class RandomRotate90(SkipClassAGMixin):
             rot_img = img.copy()
             if degree == -90:
                 rot_img = np.rot90(img)
-                rot_boxes[:,0] = bboxes[:,1]
-                rot_boxes[:,2] = bboxes[:,3]
-                rot_boxes[:,1] = w-1-bboxes[:,2]
-                rot_boxes[:,3] = w-1-bboxes[:,0]
+                rot_boxes[:, 0] = bboxes[:, 1]
+                rot_boxes[:, 2] = bboxes[:, 3]
+                rot_boxes[:, 1] = w - 1 - bboxes[:, 2]
+                rot_boxes[:, 3] = w - 1 - bboxes[:, 0]
 
             if degree == 90:
                 rot_img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
-                rot_boxes[:,0] = h-1-bboxes[:,3]
-                rot_boxes[:,2] = h-1-bboxes[:,1]
-                rot_boxes[:,1] = bboxes[:, 0]
-                rot_boxes[:,3] = bboxes[:,2]
-            labels['img'] = rot_img
+                rot_boxes[:, 0] = h - 1 - bboxes[:, 3]
+                rot_boxes[:, 2] = h - 1 - bboxes[:, 1]
+                rot_boxes[:, 1] = bboxes[:, 0]
+                rot_boxes[:, 3] = bboxes[:, 2]
+            labels["img"] = rot_img
             instances._bboxes.bboxes = rot_boxes
-            instances.convert_bbox(format='xywh')
+            instances.convert_bbox(format="xywh")
             instances.normalize(w, h)
             assert instances.normalized == True
-            labels['instances'] = instances
+            labels["instances"] = instances
         return labels
 
 
@@ -1455,7 +1523,7 @@ class RandomFlip(SkipClassAGMixin):
         >>> flipped_instances = result["instances"]
     """
 
-    def __init__(self, p=0.5, direction="horizontal", flip_idx=None,hyp=None) -> None:
+    def __init__(self, p=0.5, direction="horizontal", flip_idx=None, hyp=None) -> None:
         """
         Initializes the RandomFlip class with probability and direction.
 
@@ -2347,7 +2415,7 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
                 shear=hyp.shear,
                 perspective=hyp.perspective,
                 pre_transform=None if stretch else LetterBox(new_shape=(imgsz, imgsz)),
-                hyp=hyp
+                hyp=hyp,
             ),
         ]
     )
@@ -2365,10 +2433,10 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
             pre_transform,
             MixUp(dataset, pre_transform=pre_transform, p=hyp.mixup),
             Albumentations(p=1.0),
-            RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v,hyp=hyp),
+            RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v, hyp=hyp),
             # RandomRotate90(p=0.2,hyp=hyp),
-            RandomFlip(direction='vertical', p=hyp.flipud,hyp=hyp),
-            RandomFlip(direction='horizontal', p=hyp.fliplr, flip_idx=flip_idx,hyp=hyp)  # transforms
+            RandomFlip(direction="vertical", p=hyp.flipud, hyp=hyp),
+            RandomFlip(direction="horizontal", p=hyp.fliplr, flip_idx=flip_idx, hyp=hyp),  # transforms
         ]
     )  # transforms
 

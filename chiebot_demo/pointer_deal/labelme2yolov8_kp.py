@@ -45,12 +45,11 @@ def get_all_file_path(file_dir: str, filter_=(".jpg")) -> list:
     ]
 
 
-def expand_rect(tl: np.ndarray, br: np.ndarray, h: int, w: int):
+def expand_rect(tl: np.ndarray, br: np.ndarray, h: int, w: int,r:float=0.8):
     erhw_rate = (br - tl).min() / (br - tl).max()
     if erhw_rate < 0.1:
         D = int(0.05 * (br - tl).max())
     else:
-        r = 0.4
         A = (br - tl).min() * (br - tl).max()
         L = 2 * ((br - tl).min() + (br - tl).max())
         D = int(A * (1 - r**2) / L)

@@ -3,6 +3,7 @@ yolon/
 .vscode/
 .history/
 chiebot_test/
+chiebot_unit_test/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

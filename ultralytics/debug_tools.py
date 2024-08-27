@@ -11,11 +11,12 @@ import logging
 import time
 from contextlib import contextmanager
 from functools import wraps
+import matplotlib
+matplotlib.use('TkAgg')
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
 def timethis(func):
     r'''装饰器用于测试函数时间,需要
         import time
@@ -236,7 +237,7 @@ def show_img(
             axs.set_title(f"{idx}-shape:{img_grid_shape}")
     if text:
         plt.text(0, 0, text, fontsize=15)
-    if delay <= 0:
+    if delay <= 0 and not save_path:
         plt.show()
     else:
         if save_path:
