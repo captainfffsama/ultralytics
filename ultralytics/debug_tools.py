@@ -12,7 +12,7 @@ import time
 from contextlib import contextmanager
 from functools import wraps
 import matplotlib
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 
 import matplotlib.pyplot as plt
 import numpy as np
