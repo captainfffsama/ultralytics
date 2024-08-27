@@ -3,7 +3,7 @@
 @Author: captainfffsama
 @Date: 2024-08-16 14:02:55
 @LastEditors: captainfffsama tuanzhangsama@outlook.com
-@LastEditTime: 2024-08-27 14:15:28
+@LastEditTime: 2024-08-27 14:28:45
 @FilePath: /ultralytics/chiebot_demo/pointer_deal/pointer_test.py
 @Description:
 '''
@@ -122,6 +122,9 @@ def clean_data(data_dir):
     for txt in all_txt_path:
         os.remove(txt)
     os.remove(os.path.join(data_dir,"dataset.yaml"))
+    all_cache=get_all_file_path(os.path.join(data_dir,".."),(".cache"))
+    for cache in all_cache:
+        os.remove(cache)
     print("all txt and yaml cleaned")
 
 def main(args):
