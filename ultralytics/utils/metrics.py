@@ -1416,7 +1416,7 @@ class PoseMetrics(SegmentMetrics):
                 cls_info_collector[v] = [0, 0, 0, 0, 0, 0, 0, 0]
         else:
             for i, c in enumerate(self.box.ap_class_index):
-                cls_info_collector[self.names[c]]=[self.box.p[i], self.box.r[i], self.box.ap50[i], self.box.ap[i]]]
+                cls_info_collector[self.names[c]]=[self.box.p[i], self.box.r[i], self.box.ap50[i], self.box.ap[i]]
 
             for i, c in enumerate(self.pose.ap_class_index):
                 cls_info_collector.setdefault(self.names[c],[0,0,0,0]).extend([self.pose.p[i], self.pose.r[i], self.pose.ap50[i], self.pose.ap[i]])
