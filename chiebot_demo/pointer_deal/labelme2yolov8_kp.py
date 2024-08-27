@@ -157,7 +157,11 @@ def main(label_json_dir, save_dir, class_info: List[str]):
     class_map = {v: idx for idx, v in enumerate(class_info)}
 
     for json_path in tqdm(all_json):
-        deal_one(json_path, save_dir, class_map)
+        try:
+            deal_one(json_path, save_dir, class_map)
+        except Exception as e:
+            print(f"{json_path} deal error {e}")
+            raise e
 
     generate_yaml(save_dir, class_map)
 
