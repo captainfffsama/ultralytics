@@ -17,7 +17,8 @@ OKS_SIGMA = (
     / 10.0
 )
 
-def create_markdown_table(data:List[List[str]],significant_digits:int=5) ->str:
+
+def create_markdown_table(data: List[List[str]], significant_digits: int = 5) -> str:
     """_summary_
 
     Args:
@@ -49,14 +50,14 @@ def create_markdown_table(data:List[List[str]],significant_digits:int=5) ->str:
 
     table = []
     # 创建表格内容部分
-    for i,row in enumerate(data):
+    for i, row in enumerate(data):
         table.append("|")
         for item in row:
             if isinstance(item, float):
-                item=f"{item:.{significant_digits}f}"
+                item = f"{item:.{significant_digits}f}"
             table[-1] += f" {item} |"
         table[-1] += "\n"
-        if 0==i:
+        if 0 == i:
             # 添加分隔线
             table.append("|" + "---|" * max_cols + "\n")
 
@@ -177,6 +178,7 @@ def bbox_iou(box1, box2, xywh=True, GIoU=False, DIoU=False, CIoU=False, eps=1e-7
         return iou - (c_area - union) / c_area  # GIoU https://arxiv.org/pdf/1902.09630.pdf
     return iou  # IoU
 
+
 def box_iou_batch(boxs):
     """Compute the intersection over union of two set of boxes.
 
@@ -196,8 +198,8 @@ def box_iou_batch(boxs):
     wh = (rb - lt).clamp(min=0)  # [B,N,N,2]
     inter = wh[:, :, :, 0] * wh[:, :, :, 1]  # [B,N,N]
 
-    area = (boxs[:,:, 2] - boxs[:,:, 0]) * (boxs[:,:, 3] - boxs[:,:, 1])  # [B,N]
-    area=(area[:,:, None] + area[:,None,:]).clamp(min=1)
+    area = (boxs[:, :, 2] - boxs[:, :, 0]) * (boxs[:, :, 3] - boxs[:, :, 1])  # [B,N]
+    area = (area[:, :, None] + area[:, None, :]).clamp(min=1)
 
     iou = inter / (area - inter)
     return iou
@@ -612,11 +614,11 @@ def voc_calculate_ap_by_tpfp(recalls, precisions, mode="area"):
         ones = np.ones((num_scales, 1), dtype=recalls.dtype)
         mrec = np.hstack((zeros, recalls, ones))
         mpre = np.hstack((zeros, precisions, zeros))
-        for i in range(mpre.shape[1]-1, 0, -1):
-            mpre[:, i-1] = np.maximum(mpre[:, i-1], mpre[:, i])
+        for i in range(mpre.shape[1] - 1, 0, -1):
+            mpre[:, i - 1] = np.maximum(mpre[:, i - 1], mpre[:, i])
         for i in range(num_scales):
             ind = np.where(mrec[i, 1:] != mrec[i, :-1])[0]
-            ap[i] = np.sum((mrec[i, ind+1] - mrec[i, ind]) * mpre[i, ind+1])
+            ap[i] = np.sum((mrec[i, ind + 1] - mrec[i, ind]) * mpre[i, ind + 1])
     # elif mode == "11points":
     #     for i in range(num_scales):
     #         for thr in np.arange(0, 1+1e-3, 0.1):
@@ -629,17 +631,9 @@ def voc_calculate_ap_by_tpfp(recalls, precisions, mode="area"):
     return ap, mpre, mrec
 
 
-
-def ap_per_class(tp,
-                 conf,
-                 pred_cls,
-                 target_cls,
-                 plot=False,
-                 on_plot=None,
-                 save_dir=Path(),
-                 names=(),
-                 eps=1e-16,
-                 prefix=''):
+def ap_per_class(
+    tp, conf, pred_cls, target_cls, plot=False, on_plot=None, save_dir=Path(), names=(), eps=1e-16, prefix=""
+):
     """
     Computes the average precision per class for object detection evaluation.
 
@@ -727,16 +721,10 @@ def ap_per_class(tp,
     fp = (tp / (p + eps) - tp).round()  # false positives
     return tp, fp, p, r, f1, ap, unique_classes.astype(int), p_curve, r_curve, f1_curve, x, prec_values
 
-def voc_ap_per_class(tp,
-                 conf,
-                 pred_cls,
-                 target_cls,
-                 plot=False,
-                 on_plot=None,
-                 save_dir=Path(),
-                 names=(),
-                 eps=1e-16,
-                 prefix=''):
+
+def voc_ap_per_class(
+    tp, conf, pred_cls, target_cls, plot=False, on_plot=None, save_dir=Path(), names=(), eps=1e-16, prefix=""
+):
     """
     Computes the average precision per class for object detection evaluation.
 
@@ -814,7 +802,7 @@ def voc_ap_per_class(tp,
             # if plot and j == 0:
             #     prec_values.append(np.interp(x, mrec, mpre))  # precision at mAP@0.5
 
-    prec_values = np.array((nc, 1000)) # (nc, 1000)
+    prec_values = np.array((nc, 1000))  # (nc, 1000)
     f1_curve = 2 * p_curve * r_curve / (p_curve + r_curve + eps)
     return tp_r, fp_r, p, r, f1, ap, unique_classes.astype(int), p_curve, r_curve, f1_curve, x, prec_values
 
@@ -1024,38 +1012,42 @@ class DetMetrics(SimpleClass):
         curves_results: TODO
     """
 
-    def __init__(self, save_dir=Path("."), plot=False, on_plot=None, names=(),metrics="yolov8") -> None:
+    def __init__(self, save_dir=Path("."), plot=False, on_plot=None, names=(), metrics="yolov8") -> None:
         """Initialize a DetMetrics instance with a save directory, plot flag, callback function, and class names."""
         self.save_dir = save_dir
         self.plot = plot
         self.on_plot = on_plot
         self.names = names
         self.box = Metric()
-        self.speed = {'preprocess': 0.0, 'inference': 0.0, 'loss': 0.0, 'postprocess': 0.0}
-        assert metrics in {'yolov8','voc'}, "metrics选择yolov8或voc"
+        self.speed = {"preprocess": 0.0, "inference": 0.0, "loss": 0.0, "postprocess": 0.0}
+        assert metrics in {"yolov8", "voc"}, "metrics选择yolov8或voc"
         self.metrics = metrics
-        self.task = 'detect'
+        self.task = "detect"
 
     def process(self, tp, conf, pred_cls, target_cls):
         """Process predicted results for object detection and update metrics."""
-        if self.metrics == 'yolov8':
-            results = ap_per_class(tp,
-                                conf,
-                                pred_cls,
-                                target_cls,
-                                plot=self.plot,
-                                save_dir=self.save_dir,
-                                names=self.names,
-                                on_plot=self.on_plot)[2:]
-        elif self.metrics == 'voc':
-            results = voc_ap_per_class(tp,
-                                conf,
-                                pred_cls,
-                                target_cls,
-                                plot=self.plot,
-                                save_dir=self.save_dir,
-                                names=self.names,
-                                on_plot=self.on_plot)[2:]
+        if self.metrics == "yolov8":
+            results = ap_per_class(
+                tp,
+                conf,
+                pred_cls,
+                target_cls,
+                plot=self.plot,
+                save_dir=self.save_dir,
+                names=self.names,
+                on_plot=self.on_plot,
+            )[2:]
+        elif self.metrics == "voc":
+            results = voc_ap_per_class(
+                tp,
+                conf,
+                pred_cls,
+                target_cls,
+                plot=self.plot,
+                save_dir=self.save_dir,
+                names=self.names,
+                on_plot=self.on_plot,
+            )[2:]
         self.box.nc = len(self.names)
         self.box.update(results)
 
@@ -1090,8 +1082,8 @@ class DetMetrics(SimpleClass):
     @property
     def results_dict(self):
         """Returns dictionary of computed performance metrics and statistics."""
-        originl_r=dict(zip(self.keys + ["fitness"], self.mean_results() + [self.fitness]))
-        for i,c in enumerate(self.box.ap_class_index):
+        originl_r = dict(zip(self.keys + ["fitness"], self.mean_results() + [self.fitness]))
+        for i, c in enumerate(self.box.ap_class_index):
             originl_r[f"Class_AP50-95/{self.names[c]}"] = self.box.ap[i]
             originl_r[f"Class_AP50/{self.names[c]}"] = self.box.ap50[i]
             originl_r[f"Class_Precision/{self.names[c]}"] = self.box.p[i]
@@ -1111,17 +1103,17 @@ class DetMetrics(SimpleClass):
     @property
     def result_table_str(self) -> str:
         """Returns a string representation of the result table."""
-        data=[["Class","P","R","mAP50","mAP50-95"],]
-        if 0==len(self.box.ap_class_index):
-            for k,v in self.names.items():
-                data.append([v,0,0,0,0])
+        data = [
+            ["Class", "P", "R", "mAP50", "mAP50-95"],
+        ]
+        if 0 == len(self.box.ap_class_index):
+            for k, v in self.names.items():
+                data.append([v, 0, 0, 0, 0])
         else:
-            for i,c in enumerate(self.box.ap_class_index):
-                data.append([self.names[c],self.box.p[i],self.box.r[i],self.box.ap50[i],self.box.ap[i]])
-        data.append(["**mean**",self.box.mp,self.box.mr,self.box.map50,self.box.map])
+            for i, c in enumerate(self.box.ap_class_index):
+                data.append([self.names[c], self.box.p[i], self.box.r[i], self.box.ap50[i], self.box.ap[i]])
+        data.append(["**mean**", self.box.mp, self.box.mr, self.box.map50, self.box.map])
         return create_markdown_table(data)
-
-
 
 
 class SegmentMetrics(SimpleClass):
@@ -1395,6 +1387,42 @@ class PoseMetrics(SegmentMetrics):
     def curves_results(self):
         """Returns dictionary of computed performance metrics and statistics."""
         return self.box.curves_results + self.pose.curves_results
+
+    @property
+    def results_dict(self):
+        """Returns dictionary of computed performance metrics and statistics."""
+        originl_r = dict(zip(self.keys + ["fitness"], self.mean_results() + [self.fitness]))
+        for i, c in enumerate(self.box.ap_class_index):
+            originl_r[f"Class_AP50-95(B)/{self.names[c]}"] = self.box.ap[i]
+            originl_r[f"Class_AP50(B)/{self.names[c]}"] = self.box.ap50[i]
+            originl_r[f"Class_Precision(B)/{self.names[c]}"] = self.box.p[i]
+            originl_r[f"Class_Recall(B)/{self.names[c]}"] = self.box.r[i]
+        for i, c in enumerate(self.pose.ap_class_index):
+            originl_r[f"Class_AP50-95(P)/{self.names[c]}"] = self.pose.ap[i]
+            originl_r[f"Class_AP50(P)/{self.names[c]}"] = self.pose.ap50[i]
+            originl_r[f"Class_Precision(P)/{self.names[c]}"] = self.pose.p[i]
+            originl_r[f"Class_Recall(P)/{self.names[c]}"] = self.pose.r[i]
+        return originl_r
+
+    @property
+    def result_table_str(self) -> str:
+        """Returns a string representation of the result table."""
+        data = [
+            ["Class", "Box_P", "Box_R", "Box_mAP50", "Box_mAP50-95", "Pose_P", "Pose_R", "Pose_mAP50", "Pose_mAP50-95"],
+        ]
+        cls_info_collector = {}
+        if 0 == len(self.box.ap_class_index):
+            for k, v in self.names.items():
+                cls_info_collector[v] = [0, 0, 0, 0, 0, 0, 0, 0]
+        else:
+            for i, c in enumerate(self.box.ap_class_index):
+                cls_info_collector[self.names[c]]=[self.box.p[i], self.box.r[i], self.box.ap50[i], self.box.ap[i]]]
+
+            for i, c in enumerate(self.pose.ap_class_index):
+                cls_info_collector.setdefault(self.names[c],[0,0,0,0]).extend([self.pose.p[i], self.pose.r[i], self.pose.ap50[i], self.pose.ap[i]])
+        data.extend([(k, *v) for k, v in cls_info_collector.items()])
+        data.append(["**mean**", self.box.mp, self.box.mr, self.box.map50, self.box.map,self.pose.mp, self.pose.mr, self.pose.map50, self.pose.map])
+        return create_markdown_table(data)
 
 
 class ClassifyMetrics(SimpleClass):
