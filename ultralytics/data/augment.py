@@ -1274,8 +1274,12 @@ class RandomPerspective(SkipClassAGMixin):
 
         if keypoints is not None:
             keypoints = self.apply_keypoints(keypoints, M)
-            if self.point_generate_box:
-                bboxes=self.kps2bboxes(keypoints,self.point_generate_box_ratio,img.shape)
+            flag = False
+            if len(keypoints.shape) > 2:
+                if keypoints.shape[1] > 1:
+                    flag = True
+            if self.point_generate_box and flag:
+                bboxes = self.kps2bboxes(keypoints, self.point_generate_box_ratio, img.shape)
         new_instances = Instances(bboxes, segments, keypoints, bbox_format="xyxy", normalized=False)
         # Clip
         new_instances.clip(*self.size)
@@ -1331,9 +1335,9 @@ class RandomPerspective(SkipClassAGMixin):
         """
         tl_kp = kps[:, :, :2].min(axis=1)
         br_kp = kps[:, :, :2].max(axis=1)
-        h,w,_=img_shape
-        tl_kp,br_kp=self._expand_rect(tl_kp,br_kp,h,w,expant_ratio)
-        return np.concatenate([tl_kp,br_kp],axis=1)
+        h, w, _ = img_shape
+        tl_kp, br_kp = self._expand_rect(tl_kp, br_kp, h, w, expant_ratio)
+        return np.concatenate([tl_kp, br_kp], axis=1)
 
     def box_candidates(self, box1, box2, wh_thr=2, ar_thr=100, area_thr=0.1, eps=1e-16):
         """
