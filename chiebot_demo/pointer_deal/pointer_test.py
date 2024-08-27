@@ -3,7 +3,7 @@
 @Author: captainfffsama
 @Date: 2024-08-16 14:02:55
 @LastEditors: captainfffsama tuanzhangsama@outlook.com
-@LastEditTime: 2024-08-22 15:37:55
+@LastEditTime: 2024-08-27 14:15:28
 @FilePath: /ultralytics/chiebot_demo/pointer_deal/pointer_test.py
 @Description:
 '''
@@ -20,6 +20,7 @@
 import os
 import argparse
 from pathlib import Path
+import shutil
 
 from tqdm import tqdm
 import torch
@@ -116,6 +117,12 @@ class ChiebotPoseValidator(PoseValidator):
             final_preds.append(self._postprocess_one(pred))
         return final_preds
 
+def clean_data(data_dir):
+    all_txt_path=get_all_file_path(data_dir,(".txt"))
+    for txt in all_txt_path:
+        os.remove(txt)
+    os.remove(os.path.join(data_dir,"dataset.yaml"))
+    print("all txt and yaml cleaned")
 
 def main(args):
     weight_path=args.model
@@ -157,8 +164,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m","--model",type=str, default="/data/tmp/pointer_weight/best.pt")
-    parser.add_argument("-d","--datadir", type=str, default="/data/own_dataset/pointer_num_f/data_bak/data")
+    parser.add_argument("-m","--model",type=str, default="/home/chiebotgpuhq/Downloads/train_new0823.pt")
+    parser.add_argument("-d","--datadir", type=str, default="/data/tmp/pointer/data")
     parser.add_argument("-i","--infer_method", type=str, default="chiebot")
     parser.add_argument("-s","--save_dir", type=str, default="/data/tmp/pointer")
     args = parser.parse_args()
