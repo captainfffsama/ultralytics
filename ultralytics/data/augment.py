@@ -1309,13 +1309,13 @@ class RandomPerspective(SkipClassAGMixin):
         return labels
 
     def _expand_rect(self, tl: np.ndarray, br: np.ndarray, h: int, w: int, r: float = 0.4):
-        erhw_rate = (br - tl).min(axis=1) / (br - tl).max(axis=1)
+        erhw_rate = (br - tl).min(axis=1) / ((br - tl).max(axis=1)+1e-6)
 
         small_rate_idx=erhw_rate<0.1
         D1 = (0.05 * (br - tl).max(axis=1)).astype(int)
         A = (br - tl).min(axis=1) * (br - tl).max(axis=1)
         L = 2 * ((br - tl).min(axis=1) + (br - tl).max(axis=1))
-        D2 = (A * (1 - r**2) / (L+1e-5)).astype(int)
+        D2 = (A * (1 - r**2) / (L+1e-6)).astype(int)
 
         DF=(D1*small_rate_idx+D2*(~small_rate_idx)).astype(int)
 
