@@ -1404,7 +1404,7 @@ def detect_vis(
             ax[i].axis("off")
 
         LOGGER.info(f"Saving {file}")
-        plt.savefig(file, dpi=300, bbox_inches="tight")
+        plt.savefig(file, dpi=700, bbox_inches="tight")
         plt.close()
 
 

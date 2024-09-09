@@ -68,7 +68,7 @@ from ultralytics.utils.loss import (
     v8HQDetectionLoss,
 )
 from ultralytics.utils.ops import make_divisible
-from ultralytics.utils.plotting import feature_visualization
+from ultralytics.utils.plotting import feature_visualization,feature_pca_v,detect_vis
 from ultralytics.utils.torch_utils import (
     fuse_conv_and_bn,
     fuse_deconv_and_bn,
