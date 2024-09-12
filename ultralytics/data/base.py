@@ -246,13 +246,13 @@ class BaseDataset(Dataset):
         b, gb = 0, 1 << 30  # bytes of cached images, bytes per gigabytes
         fcn, storage = (self.cache_images_to_disk, "Disk") if self.cache == "disk" else (self.load_image, "RAM")
 
-        if not (self.cache_compress == self.shape_cache_path.exists()) and "disk" == self.cache:
+        if (self.cache_compress != self.shape_cache_path.exists()) and "disk" == self.cache:
             self.clean_npy()
         all_imgs_origin_hw = {}
         if "disk" == self.cache and self.cache_compress:
             if self.shape_cache_path.exists():
                 all_imgs_origin_hw = load_dataset_cache_file(self.shape_cache_path)
-                if all_imgs_origin_hw.get("hash", None) != get_hash(self.im_files):
+                if all_imgs_origin_hw.get("hash", None) != get_hash(self.im_files,repr(self.imgsz)):
                     self.clean_npy()
                     all_imgs_origin_hw = {}
 
@@ -277,7 +277,7 @@ class BaseDataset(Dataset):
             pbar.close()
 
         if origin_hw_pickle_update:
-            all_imgs_origin_hw["hash"] = get_hash(self.im_files)
+            all_imgs_origin_hw["hash"] = get_hash(self.im_files,repr(self.imgsz))
             save_dataset_cache_file(self.prefix, self.shape_cache_path, all_imgs_origin_hw, "chiebot1.0")
 
     def cache_images_to_disk(self, i):
