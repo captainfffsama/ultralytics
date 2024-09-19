@@ -19,7 +19,7 @@ from torch.utils.data import Dataset
 import torchvision
 
 from ultralytics.data.utils import FORMATS_HELP_MSG, HELP_URL, IMG_FORMATS
-from ultralytics.utils import DEFAULT_CFG, LOCAL_RANK, LOGGER, NUM_THREADS, TQDM
+from ultralytics.utils import DEFAULT_CFG, LOCAL_RANK, LOGGER, NUM_THREADS, TQDM,remove_colorstr
 from .utils import FORMATS_HELP_MSG, HELP_URL, IMG_FORMATS, load_dataset_cache_file, save_dataset_cache_file, get_hash
 
 from ultralytics.debug_tools import timeblock, timethis
@@ -133,7 +133,7 @@ class BaseDataset(Dataset):
 
         self.cache_compress = hyp.get("cache_compress", False)
         self.npy_img_origin_hw = [None] * self.ni
-        self.shape_cache_path = Path(str(Path(self.im_files[0]).parent)+f"{self.prefix.replace(':','')}.shapecache")
+        self.shape_cache_path = Path(str(Path(self.im_files[0]).parent)+f"{remove_colorstr(self.prefix).replace(':','')}.shapecache")
 
         self.cache = cache.lower() if isinstance(cache, str) else "ram" if cache is True else None
         if (self.cache == "ram" and self.check_cache_ram()) or self.cache == "disk":
