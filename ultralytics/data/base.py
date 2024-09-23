@@ -133,7 +133,7 @@ class BaseDataset(Dataset):
 
         self.cache_compress = hyp.get("cache_compress", False)
         self.npy_img_origin_hw = [None] * self.ni
-        self.shape_cache_path = Path(str(Path(self.im_files[0]).parent)+f"_{remove_colorstr(self.prefix).replace(':','')}.shapecache")
+        self.shape_cache_path = Path(str(Path(self.im_files[0]).parent)+f"_{remove_colorstr(self.prefix).replace(':','').strip()}.shapecache")
 
         self.cache = cache.lower() if isinstance(cache, str) else "ram" if cache is True else None
         if (self.cache == "ram" and self.check_cache_ram()) or self.cache == "disk":
