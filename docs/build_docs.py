@@ -1,8 +1,8 @@
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 """
-This Python script is designed to automate the building and post-processing of MkDocs documentation, particularly for
-projects with multilingual content. It streamlines the workflow for generating localized versions of the documentation
-and updating HTML links to ensure they are correctly formatted.
+Automates the building and post-processing of MkDocs documentation, particularly for projects with multilingual content.
+It streamlines the workflow for generating localized versions of the documentation and updating HTML links to ensure
+they are correctly formatted.
 
 Key Features:
     - Automated building of MkDocs documentation: The script compiles both the main documentation and
@@ -64,7 +64,6 @@ def prepare_docs_markdown(clone_repos=True):
 
 def update_page_title(file_path: Path, new_title: str):
     """Update the title of an HTML file."""
-
     # Read the content of the file
     with open(file_path, encoding="utf-8") as file:
         content = file.read()
@@ -153,7 +152,6 @@ def update_markdown_files(md_filepath: Path):
 
 def update_docs_html():
     """Updates titles, edit links, head sections, and converts plaintext links in HTML documentation."""
-
     # Update 404 titles
     update_page_title(SITE / "404.html", new_title="Ultralytics Docs - Not Found")
 
@@ -166,7 +164,7 @@ def update_docs_html():
     # Convert plaintext links to HTML hyperlinks
     files_modified = 0
     for html_file in tqdm(SITE.rglob("*.html"), desc="Converting plaintext links"):
-        with open(html_file, "r", encoding="utf-8") as file:
+        with open(html_file, encoding="utf-8") as file:
             content = file.read()
         updated_content = convert_plaintext_links_to_html(content)
         if updated_content != content:
@@ -201,11 +199,12 @@ def convert_plaintext_links_to_html(content):
         for text_node in paragraph.find_all(string=True, recursive=False):
             if text_node.parent.name not in {"a", "code"}:  # Ignore links and code blocks
                 new_text = re.sub(
-                    r'(https?://[^\s()<>]+(?:\.[^\s()<>]+)+)(?<![.,:;\'"])',
+                    r"(https?://[^\s()<>]*[^\s()<>.,:;!?\'\"])",
                     r'<a href="\1">\1</a>',
                     str(text_node),
                 )
-                if "<a" in new_text:
+                if "<a href=" in new_text:
+                    # Parse the new text with BeautifulSoup to handle HTML properly
                     new_soup = BeautifulSoup(new_text, "html.parser")
                     text_node.replace_with(new_soup)
                     modified = True
@@ -228,7 +227,7 @@ def remove_macros():
     # Create a set of indices to remove (including lines before and after)
     indices_to_remove = set()
     for i in macros_indices:
-        indices_to_remove.update(range(i - 1, i + 4))  # i-1, i, i+1, i+2, i+3
+        indices_to_remove.update(range(i - 1, i + 3))  # i-1, i, i+1, i+2, i+3
 
     # Create new list of lines, excluding the ones to remove
     new_lines = [line for i, line in enumerate(lines) if i not in indices_to_remove]
@@ -239,8 +238,36 @@ def remove_macros():
     print(f"Removed {len(macros_indices)} URLs containing '/macros/' from {sitemap}")
 
 
+def minify_html_files():
+    """Minifies all HTML files in the site directory and prints reduction stats."""
+    try:
+        from minify_html import minify  # pip install minify-html
+    except ImportError:
+        return
+
+    total_original_size = 0
+    total_minified_size = 0
+    for html_file in tqdm(SITE.rglob("*.html"), desc="Minifying HTML files"):
+        with open(html_file, encoding="utf-8") as f:
+            content = f.read()
+
+        original_size = len(content)
+        minified_content = minify(content)
+        minified_size = len(minified_content)
+
+        total_original_size += original_size
+        total_minified_size += minified_size
+
+        with open(html_file, "w", encoding="utf-8") as f:
+            f.write(minified_content)
+
+    total_reduction = total_original_size - total_minified_size
+    total_percent_reduction = (total_reduction / total_original_size) * 100
+    print(f"Minify HTML reduction: {total_percent_reduction:.2f}% " f"({total_reduction / 1024:.2f} KB saved)")
+
+
 def main():
-    """Builds docs, updates titles and edit links, and prints local server command."""
+    """Builds docs, updates titles and edit links, minifies HTML, and prints local server command."""
     prepare_docs_markdown()
 
     # Build the main documentation
@@ -251,6 +278,9 @@ def main():
 
     # Update docs HTML pages
     update_docs_html()
+
+    # Minify HTML files
+    minify_html_files()
 
     # Show command to serve built website
     print('Docs built correctly ✅\nServe site at http://localhost:8000 with "python -m http.server --directory site"')
